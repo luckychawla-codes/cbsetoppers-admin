@@ -7,6 +7,7 @@
         "dev": "vite",
         "build": "vite build",
         "preview": "vite preview",
+        "start": "vite preview --port 10000 --host 0.0.0.0",
         "app:build": "npm run build && npx cap sync",
         "app:open": "npx cap open android",
         "app:build:final": "npm run build && npx cap sync && cd android && set ANDROID_HOME=C:\\Users\\lucky\\AppData\\Local\\Android\\Sdk&& gradlew assembleRelease && copy app\\build\\outputs\\apk\\release\\app-release.apk ..\\..\\CBSE_TOPPERS_admin_exclusive_v2.apk"
