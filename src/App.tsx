@@ -310,9 +310,9 @@ const StudentsView: React.FC<{ students: any[]; loading: boolean }> = ({ student
                 </div>
             </div>
 
-            <div className="bg-white/[0.02] border border-white/[0.06] rounded-2xl overflow-hidden">
+            <div className="bg-white/[0.02] border border-white/[0.06] rounded-2xl overflow-hidden w-full">
                 {/* Desktop View Table */}
-                <div className="hidden lg:block overflow-x-auto">
+                <div className="hidden xl:block overflow-x-auto">
                     <table className="w-full">
                         <thead>
                             <tr className="border-b border-white/[0.06]">
@@ -357,7 +357,7 @@ const StudentsView: React.FC<{ students: any[]; loading: boolean }> = ({ student
                 </div>
 
                 {/* Mobile View Cards */}
-                <div className="lg:hidden divide-y divide-white/[0.04]">
+                <div className="xl:hidden divide-y divide-white/[0.04]">
                     {loading ? [...Array(3)].map((_, i) => (
                         <div key={i} className="p-6 space-y-4 animate-pulse">
                             <div className="h-4 bg-white/5 rounded w-1/3" />
@@ -845,7 +845,7 @@ const AdminApp: React.FC = () => {
                 {/* Ambient glow */}
                 <div className="absolute top-0 right-0 w-[500px] h-[300px] bg-violet-900/10 blur-[120px] rounded-full pointer-events-none" />
 
-                <main className="flex-1 overflow-y-auto p-6 md:p-8 relative">
+                <main className="flex-1 overflow-y-auto p-4 md:p-8 relative w-full">
                     {view === 'dashboard' && <DashboardView stats={stats} operator={operator} onRefresh={loadData} loading={loading} />}
                     {view === 'students' && <StudentsView students={students} loading={loading} />}
                     {view === 'operators' && <OperatorsView currentOperator={operator} />}
