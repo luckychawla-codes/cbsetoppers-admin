@@ -311,7 +311,8 @@ const StudentsView: React.FC<{ students: any[]; loading: boolean }> = ({ student
             </div>
 
             <div className="bg-white/[0.02] border border-white/[0.06] rounded-2xl overflow-hidden">
-                <div className="overflow-x-auto">
+                {/* Desktop View Table */}
+                <div className="hidden lg:block overflow-x-auto">
                     <table className="w-full">
                         <thead>
                             <tr className="border-b border-white/[0.06]">
@@ -353,12 +354,41 @@ const StudentsView: React.FC<{ students: any[]; loading: boolean }> = ({ student
                             ))}
                         </tbody>
                     </table>
-                    {!loading && filtered.length === 0 && (
-                        <div className="py-16 text-center">
-                            <p className="text-white/20 font-bold">No students found</p>
-                        </div>
-                    )}
                 </div>
+
+                {/* Mobile View Cards */}
+                <div className="lg:hidden divide-y divide-white/[0.04]">
+                    {loading ? [...Array(3)].map((_, i) => (
+                        <div key={i} className="p-6 space-y-4 animate-pulse">
+                            <div className="h-4 bg-white/5 rounded w-1/3" />
+                            <div className="h-3 bg-white/5 rounded w-1/2" />
+                            <div className="h-3 bg-white/5 rounded w-1/4" />
+                        </div>
+                    )) : filtered.map((s: any, i: number) => (
+                        <div key={i} className="p-5 space-y-4 hover:bg-white/[0.01] transition-all">
+                            <div className="flex items-start justify-between">
+                                <div>
+                                    <p className="font-black text-white text-base leading-tight">{s.name}</p>
+                                    <p className="text-[10px] font-bold text-white/30 uppercase tracking-widest mt-1">{s.gender} · {s.class} {s.stream && `· ${s.stream}`}</p>
+                                </div>
+                                <code className="text-[9px] font-black text-violet-400 bg-violet-400/10 border border-violet-400/20 px-2 py-0.5 rounded-md">{s.student_id}</code>
+                            </div>
+                            <div className="flex items-center justify-between pt-2 border-t border-white/[0.03]">
+                                <p className="text-[11px] text-white/40 font-medium truncate max-w-[200px]">{s.email}</p>
+                                <div className="flex items-center gap-1.5 px-2 py-1 bg-emerald-500/10 rounded-lg">
+                                    <div className="w-1 h-1 bg-emerald-400 rounded-full" />
+                                    <span className="text-[8px] font-black text-emerald-400 uppercase tracking-widest">Active</span>
+                                </div>
+                            </div>
+                        </div>
+                    ))}
+                </div>
+
+                {!loading && filtered.length === 0 && (
+                    <div className="py-16 text-center">
+                        <p className="text-white/20 font-bold">No students found</p>
+                    </div>
+                )}
             </div>
         </div>
     );

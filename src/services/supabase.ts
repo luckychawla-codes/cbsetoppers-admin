@@ -162,15 +162,15 @@ export const fetchMaintenanceSettings = async () => {
     return data;
 };
 
-export const updateMaintenanceSettings = async (settings: {
-    maintenance_enabled: boolean;
-    maintenance_message: string;
-    maintenance_opening_date: string | null;
-}) => {
+export const updateMaintenanceSettings = async (settings: any) => {
+    const { id, ...updateData } = settings;
+    // If id is provided, use it, otherwise fallback to id 1
+    const targetId = id || 1;
+
     const { data, error } = await supabase
         .from('settings')
-        .update(settings)
-        .eq('id', 1)
+        .update(updateData)
+        .eq('id', targetId)
         .select();
     if (error) throw error;
     return data;
