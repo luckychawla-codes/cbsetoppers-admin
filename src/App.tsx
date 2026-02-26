@@ -212,7 +212,7 @@ const DashboardView: React.FC<{ stats: any; operator: Operator; onRefresh: () =>
             </div>
 
             {/* Stats Grid */}
-            <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 xl:gap-8">
                 <StatCard
                     label="Students" value={stats?.studentCount ?? '—'} sub="Verified toppers"
                     icon={<Users className="text-violet-400" />} color="text-violet-400"
@@ -298,12 +298,12 @@ const StudentsView: React.FC<{ students: any[]; loading: boolean }> = ({ student
                     <h1 className="text-3xl font-black text-white uppercase tracking-tighter">Student Base</h1>
                     <p className="text-white/30 text-sm font-medium mt-1">{students.length} registered toppers</p>
                 </div>
-                <div className="relative">
+                <div className="relative w-full xl:w-[500px]">
                     <Search size={15} className="absolute left-4 top-1/2 -translate-y-1/2 text-white/25" />
                     <input
                         type="text"
                         placeholder="Search by name, ID, or email..."
-                        className="w-full md:w-80 bg-white/[0.05] border border-white/[0.08] rounded-xl pl-11 pr-4 py-3 text-sm font-medium text-white placeholder:text-white/20 outline-none focus:border-violet-500/50 transition-all"
+                        className="w-full bg-white/[0.05] border border-white/[0.08] rounded-xl pl-11 pr-4 py-3 text-sm font-medium text-white placeholder:text-white/20 outline-none focus:border-violet-500/50 transition-all"
                         value={search}
                         onChange={e => setSearch(e.target.value)}
                     />
@@ -623,7 +623,7 @@ const SettingsView: React.FC = () => {
     };
 
     return (
-        <div className="space-y-6 max-w-3xl">
+        <div className="space-y-6">
             <div>
                 <h1 className="text-3xl font-black text-white uppercase tracking-tighter">Platform Settings</h1>
                 <p className="text-white/30 text-sm font-medium mt-1">Control maintenance mode and global system variables.</p>
@@ -845,7 +845,7 @@ const AdminApp: React.FC = () => {
                 {/* Ambient glow */}
                 <div className="absolute top-0 right-0 w-[500px] h-[300px] bg-violet-900/10 blur-[120px] rounded-full pointer-events-none" />
 
-                <main className="flex-1 overflow-y-auto p-4 md:p-8 relative w-full">
+                <main className="flex-1 overflow-y-auto p-4 md:p-10 lg:p-12 relative w-full">
                     {view === 'dashboard' && <DashboardView stats={stats} operator={operator} onRefresh={loadData} loading={loading} />}
                     {view === 'students' && <StudentsView students={students} loading={loading} />}
                     {view === 'operators' && <OperatorsView currentOperator={operator} />}
