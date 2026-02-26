@@ -1,0 +1,130 @@
+<!doctype html>
+<html lang="en">
+
+<head>
+  <meta charset="UTF-8" />
+  <link rel="icon" type="image/png" href="https://i.ibb.co/vC4MYFFk/1770137585956.png" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>CBSE TOPPERS | Admin Control</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap"
+    rel="stylesheet">
+  <style>
+    body {
+      margin: 0;
+      background-color: #050510;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      min-height: 100vh;
+      overflow: hidden;
+    }
+
+    #splash-screen {
+      position: fixed;
+      inset: 0;
+      background: #050510;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      z-index: 9999;
+      transition: opacity 0.5s ease, visibility 0.5s ease;
+    }
+
+    #splash-screen.hidden {
+      opacity: 0;
+      visibility: hidden;
+    }
+
+    .logo-container {
+      position: relative;
+      width: 80px;
+      height: 80px;
+      background: rgba(255, 255, 255, 0.03);
+      border: 1px solid rgba(255, 255, 255, 0.1);
+      border-radius: 1.5rem;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      box-shadow: 0 20px 40px rgba(0, 0, 0, 0.4);
+      animation: bounce 2s infinite ease-in-out;
+      margin-bottom: 2rem;
+    }
+
+    .logo-container img {
+      width: 50px;
+      height: 50px;
+      border-radius: 0.75rem;
+    }
+
+    .brand-name {
+      font-family: 'Inter', sans-serif;
+      color: white;
+      font-size: 1.25rem;
+      font-weight: 900;
+      text-transform: uppercase;
+      letter-spacing: 0.3em;
+      margin: 0;
+      animation: pulse 2s infinite;
+    }
+
+    .terminal-text {
+      font-family: 'Inter', sans-serif;
+      color: #7c3aed;
+      font-size: 0.6rem;
+      font-weight: 900;
+      text-transform: uppercase;
+      letter-spacing: 0.5em;
+      margin-top: 0.5rem;
+      opacity: 0.6;
+    }
+
+    @keyframes bounce {
+
+      0%,
+      100% {
+        transform: translateY(0);
+      }
+
+      50% {
+        transform: translateY(-10px);
+      }
+    }
+
+    @keyframes pulse {
+
+      0%,
+      100% {
+        opacity: 1;
+      }
+
+      50% {
+        opacity: 0.5;
+      }
+    }
+  </style>
+</head>
+
+<body>
+  <div id="splash-screen">
+    <div class="logo-container">
+      <img src="https://i.ibb.co/vC4MYFFk/1770137585956.png" alt="Logo">
+    </div>
+    <h1 class="brand-name">CBSE TOPPERS</h1>
+    <p class="terminal-text">Admin Terminal</p>
+  </div>
+  <div id="root"></div>
+  <script type="module" src="/src/main.tsx"></script>
+  <script>
+    // Automatically hide splash after a delay or when React is ready
+    window.hideSplash = () => {
+      const s = document.getElementById('splash-screen');
+      if (s) s.classList.add('hidden');
+    };
+    setTimeout(window.hideSplash, 2000);
+  </script>
+</body>
+
+</html>

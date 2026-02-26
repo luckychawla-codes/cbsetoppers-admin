@@ -1,0 +1,829 @@
+import React, { useState, useEffect, useCallback } from 'react';
+import {
+    LayoutDashboard, Users, Settings, LogOut, Search,
+    ShieldAlert, Calendar, Clock, TrendingUp, Activity,
+    Shield, Plus, Trash2, Eye, EyeOff, ChevronRight,
+    Zap, BarChart3, AlertTriangle, CheckCircle2, XCircle,
+    RefreshCw, MessageSquare, Crown, Star, Lock
+} from 'lucide-react';
+import {
+    fetchAdminStats, fetchAllStudents, fetchMaintenanceSettings,
+    updateMaintenanceSettings, supabase, signInOperator, signOutOperator,
+    fetchAllOperators, createOperator, deleteOperator,
+    Operator, OperatorRole
+} from './services/supabase';
+
+type View = 'dashboard' | 'students' | 'settings' | 'operators';
+
+const LOGO_URL = "https://i.ibb.co/vC4MYFFk/1770137585956.png";
+
+const ROLE_CONFIG: Record<OperatorRole, { label: string; color: string; bg: string; icon: React.ReactNode }> = {
+    founder: {
+        label: 'Founder',
+        color: 'text-amber-400',
+        bg: 'bg-amber-400/10 border-amber-400/20',
+        icon: <Crown size={12} />,
+    },
+    ceo: {
+        label: 'CEO',
+        color: 'text-violet-400',
+        bg: 'bg-violet-400/10 border-violet-400/20',
+        icon: <Star size={12} />,
+    },
+    owner: {
+        label: 'Owner',
+        color: 'text-cyan-400',
+        bg: 'bg-cyan-400/10 border-cyan-400/20',
+        icon: <Shield size={12} />,
+    },
+};
+
+// ─────────────────────────────────────────────────────────────────────
+// LOGIN PAGE
+// ─────────────────────────────────────────────────────────────────────
+const LoginPage: React.FC<{ onLogin: (op: Operator) => void }> = ({ onLogin }) => {
+    const [email, setEmail] = useState('');
+    const [password, setPassword] = useState('');
+    const [showPass, setShowPass] = useState(false);
+    const [loading, setLoading] = useState(false);
+    const [error, setError] = useState('');
+
+    const handleLogin = async () => {
+        if (!email || !password) { setError('Enter both email and password.'); return; }
+        setLoading(true);
+        setError('');
+        try {
+            const op = await signInOperator(email, password);
+            if (op) onLogin(op);
+        } catch (err: any) {
+            setError(err.message || 'Authentication failed.');
+        } finally {
+            setLoading(false);
+        }
+    };
+
+    return (
+        <div className="min-h-screen bg-[#050510] flex flex-col items-center justify-center p-8 relative overflow-hidden">
+            {/* Ambient glows */}
+            <div className="absolute top-0 left-1/2 -translate-x-1/2 w-[800px] h-[400px] bg-violet-600/10 blur-[120px] rounded-full pointer-events-none animate-pulse-slow" />
+            <div className="absolute bottom-0 right-0 w-[500px] h-[500px] bg-indigo-700/5 blur-[100px] rounded-full pointer-events-none" />
+
+            <div className="relative w-full max-w-[400px] z-10 animate-up">
+                {/* Brand - Direct on screen */}
+                <div className="flex flex-col items-center gap-6 mb-12">
+                    <div className="relative group">
+                        <div className="absolute inset-0 bg-violet-600/20 blur-2xl rounded-full scale-150 opacity-0 group-hover:opacity-100 transition-opacity duration-700" />
+                        <div className="relative w-24 h-24 rounded-[1.75rem] overflow-hidden shadow-2xl shadow-violet-900/40 border border-white/10 transform transition-transform duration-500 hover:scale-105 active:scale-95">
+                            <img src={LOGO_URL} className="w-full h-full object-cover" />
+                        </div>
+                        <div className="absolute -bottom-2 -right-2 w-8 h-8 bg-violet-600 rounded-xl flex items-center justify-center shadow-lg border border-violet-500/30">
+                            <Lock size={14} className="text-white" />
+                        </div>
+                    </div>
+                    <div className="text-center">
+                        <h1 className="text-3xl font-black text-white uppercase tracking-tighter leading-none">CBSE TOPPERS</h1>
+                        <p className="text-[11px] font-black text-violet-400 uppercase tracking-[0.5em] mt-3 opacity-60">Admin Terminal</p>
+                    </div>
+                </div>
+
+                {/* Form - Minimal & Smooth */}
+                <div className="space-y-5">
+                    <div className="space-y-2">
+                        <label className="text-[10px] font-black text-white/30 uppercase tracking-[0.2em] ml-1">Operator Access</label>
+                        <input
+                            type="email"
+                            placeholder="Email Address"
+                            className="w-full bg-white/[0.03] border border-white/[0.06] rounded-2xl px-5 py-4 text-sm font-medium text-white placeholder:text-white/10 outline-none focus:border-violet-500/40 focus:bg-white/[0.05] transition-all duration-300"
+                            value={email}
+                            onChange={e => setEmail(e.target.value)}
+                            onKeyDown={e => e.key === 'Enter' && handleLogin()}
+                            autoComplete="email"
+                        />
+                    </div>
+                    <div className="space-y-2">
+                        <div className="relative">
+                            <input
+                                type={showPass ? 'text' : 'password'}
+                                placeholder="Security Key"
+                                className="w-full bg-white/[0.03] border border-white/[0.06] rounded-2xl px-5 py-4 pr-14 text-sm font-medium text-white placeholder:text-white/10 outline-none focus:border-violet-500/40 focus:bg-white/[0.05] transition-all duration-300"
+                                value={password}
+                                onChange={e => setPassword(e.target.value)}
+                                onKeyDown={e => e.key === 'Enter' && handleLogin()}
+                            />
+                            <button
+                                type="button"
+                                className="absolute right-5 top-1/2 -translate-y-1/2 text-white/10 hover:text-white/40 transition-colors"
+                                onClick={() => setShowPass(!showPass)}
+                            >
+                                {showPass ? <EyeOff size={18} /> : <Eye size={18} />}
+                            </button>
+                        </div>
+                    </div>
+
+                    {error && (
+                        <div className="flex items-center gap-3 p-4 bg-red-500/5 border border-red-500/10 rounded-2xl animate-shake">
+                            <XCircle size={18} className="text-red-500 shrink-0" />
+                            <p className="text-red-500 text-[11px] font-bold">{error}</p>
+                        </div>
+                    )}
+
+                    <button
+                        onClick={handleLogin}
+                        disabled={loading}
+                        className="w-full py-4.5 bg-white text-black hover:bg-violet-500 hover:text-white font-black uppercase text-[11px] tracking-[0.2em] rounded-2xl shadow-xl transition-all duration-500 active:scale-[0.98] disabled:opacity-30 disabled:cursor-not-allowed flex items-center justify-center gap-3 mt-4"
+                    >
+                        {loading ? (
+                            <><div className="w-4 h-4 border-2 border-black/20 border-t-black rounded-full animate-spin" /> Authenticating...</>
+                        ) : (
+                            <><Shield size={16} /> Enter Terminal</>
+                        )}
+                    </button>
+                </div>
+
+                <p className="text-center text-[9px] text-white/10 font-black uppercase tracking-[0.3em] mt-16">
+                    Restricted Access · v3.0 Final
+                </p>
+            </div>
+        </div>
+    );
+};
+
+// ─────────────────────────────────────────────────────────────────────
+// SIDEBAR ITEM
+// ─────────────────────────────────────────────────────────────────────
+const SidebarItem: React.FC<{ icon: React.ReactNode; label: string; active: boolean; onClick: () => void; badge?: number }> = ({ icon, label, active, onClick, badge }) => (
+    <button
+        onClick={onClick}
+        className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl text-[11px] font-black uppercase tracking-widest transition-all group relative ${active
+            ? 'bg-violet-600/20 text-violet-400 border border-violet-500/20'
+            : 'text-white/30 hover:text-white/60 hover:bg-white/[0.04]'
+            }`}
+    >
+        <span className={`transition-all ${active ? 'text-violet-400' : 'text-white/25 group-hover:text-white/50'}`}>{icon}</span>
+        {label}
+        {badge !== undefined && badge > 0 && (
+            <span className="ml-auto bg-violet-500 text-white text-[8px] font-black px-2 py-0.5 rounded-full">{badge}</span>
+        )}
+        {active && <ChevronRight size={12} className="ml-auto text-violet-500" />}
+    </button>
+);
+
+// ─────────────────────────────────────────────────────────────────────
+// STAT CARD
+// ─────────────────────────────────────────────────────────────────────
+const StatCard: React.FC<{ label: string; value: string | number; icon: React.ReactNode; sub: string; color: string }> = ({ label, value, icon, sub, color }) => (
+    <div className="bg-white/[0.03] border border-white/[0.06] rounded-2xl p-6 hover:border-white/[0.12] hover:bg-white/[0.05] transition-all group">
+        <div className="flex items-start justify-between mb-5">
+            <div className={`w-10 h-10 rounded-xl flex items-center justify-center ${color} bg-current/10`} style={{ backgroundColor: 'color-mix(in srgb, currentColor 10%, transparent)' }}>
+                <div className="[&>*]:w-5 [&>*]:h-5">{icon}</div>
+            </div>
+            <Activity size={14} className="text-white/10 group-hover:text-white/20 transition-colors" />
+        </div>
+        <p className={`text-3xl font-black ${color} tracking-tighter mb-1`}>{value}</p>
+        <p className="text-[11px] font-black text-white/20 uppercase tracking-widest mb-1">{label}</p>
+        <p className="text-[10px] text-white/15 font-medium">{sub}</p>
+    </div>
+);
+
+// ─────────────────────────────────────────────────────────────────────
+// DASHBOARD VIEW
+// ─────────────────────────────────────────────────────────────────────
+const DashboardView: React.FC<{ stats: any; operator: Operator; onRefresh: () => void; loading: boolean }> = ({ stats, operator, onRefresh, loading }) => {
+    const roleConf = ROLE_CONFIG[operator.role];
+
+    return (
+        <div className="space-y-8">
+            {/* Header */}
+            <div className="flex items-start justify-between">
+                <div>
+                    <div className={`inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-[9px] font-black uppercase tracking-widest border mb-3 ${roleConf.bg} ${roleConf.color}`}>
+                        {roleConf.icon} {roleConf.label}
+                    </div>
+                    <h1 className="text-3xl font-black text-white uppercase tracking-tighter">Command Center</h1>
+                    <p className="text-white/30 text-sm font-medium mt-1">Welcome back, {operator.name.split(' ')[0]}. Here's your platform overview.</p>
+                </div>
+                <button
+                    onClick={onRefresh}
+                    disabled={loading}
+                    className="flex items-center gap-2 px-4 py-2.5 bg-white/[0.05] border border-white/[0.08] rounded-xl text-[10px] font-black text-white/40 uppercase tracking-widest hover:text-white/60 hover:bg-white/[0.08] transition-all active:scale-95"
+                >
+                    <RefreshCw size={13} className={loading ? 'animate-spin' : ''} /> Refresh
+                </button>
+            </div>
+
+            {/* Stats Grid */}
+            <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+                <StatCard
+                    label="Students" value={stats?.studentCount ?? '—'} sub="Verified toppers"
+                    icon={<Users className="text-violet-400" />} color="text-violet-400"
+                />
+                <StatCard
+                    label="Quizzes" value={stats?.quizCount ?? '—'} sub="Total attempts"
+                    icon={<Zap className="text-amber-400" />} color="text-amber-400"
+                />
+                <StatCard
+                    label="Accuracy" value={`${stats?.accuracy ?? 0}%`} sub="Platform average"
+                    icon={<BarChart3 className="text-cyan-400" />} color="text-cyan-400"
+                />
+                <StatCard
+                    label="Status" value="Online" sub="All systems running"
+                    icon={<CheckCircle2 className="text-emerald-400" />} color="text-emerald-400"
+                />
+            </div>
+
+            {/* Recent Results */}
+            <div className="bg-white/[0.02] border border-white/[0.06] rounded-2xl overflow-hidden">
+                <div className="flex items-center justify-between px-6 py-5 border-b border-white/[0.06]">
+                    <div className="flex items-center gap-3">
+                        <div className="w-2 h-2 bg-emerald-400 rounded-full animate-pulse" />
+                        <h3 className="text-sm font-black text-white uppercase tracking-widest">Live Assessment Feed</h3>
+                    </div>
+                    <span className="text-[9px] font-black text-white/20 uppercase tracking-widest">Last 10 Results</span>
+                </div>
+                <div className="divide-y divide-white/[0.04]">
+                    {loading ? (
+                        [...Array(4)].map((_, i) => (
+                            <div key={i} className="px-6 py-4 flex items-center gap-4 animate-pulse">
+                                <div className="w-9 h-9 bg-white/5 rounded-xl" />
+                                <div className="flex-1 space-y-2">
+                                    <div className="h-3 bg-white/5 rounded w-1/3" />
+                                    <div className="h-2 bg-white/3 rounded w-1/4" />
+                                </div>
+                            </div>
+                        ))
+                    ) : (stats?.recentResults || []).map((res: any, i: number) => {
+                        const pct = Math.round((res.score / res.total) * 100);
+                        return (
+                            <div key={i} className="px-6 py-4 flex items-center gap-4 hover:bg-white/[0.02] transition-colors group">
+                                <div className="w-9 h-9 bg-violet-500/10 border border-violet-500/20 rounded-xl flex items-center justify-center text-sm">🎓</div>
+                                <div className="flex-1 min-w-0">
+                                    <p className="text-sm font-bold text-white truncate">{res.students?.name || 'Anonymous'}</p>
+                                    <p className="text-[10px] font-bold text-white/30 uppercase tracking-wider">{res.subject} · {res.score}/{res.total}</p>
+                                </div>
+                                <div className="text-right shrink-0">
+                                    <div className={`inline-flex items-center gap-1 px-2.5 py-1 rounded-lg text-[10px] font-black ${pct >= 70 ? 'bg-emerald-400/10 text-emerald-400' : pct >= 50 ? 'bg-amber-400/10 text-amber-400' : 'bg-red-400/10 text-red-400'}`}>
+                                        {pct}%
+                                    </div>
+                                    <p className="text-[9px] text-white/20 mt-1">{new Date(res.created_at).toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit' })}</p>
+                                </div>
+                            </div>
+                        );
+                    })}
+                    {!loading && (!stats?.recentResults || stats.recentResults.length === 0) && (
+                        <div className="px-6 py-12 text-center">
+                            <p className="text-white/20 text-sm font-bold">No activity yet</p>
+                        </div>
+                    )}
+                </div>
+            </div>
+        </div>
+    );
+};
+
+// ─────────────────────────────────────────────────────────────────────
+// STUDENTS VIEW
+// ─────────────────────────────────────────────────────────────────────
+const StudentsView: React.FC<{ students: any[]; loading: boolean }> = ({ students, loading }) => {
+    const [search, setSearch] = useState('');
+    const filtered = students.filter(s =>
+        s.name?.toLowerCase().includes(search.toLowerCase()) ||
+        s.student_id?.toLowerCase().includes(search.toLowerCase()) ||
+        s.email?.toLowerCase().includes(search.toLowerCase())
+    );
+
+    return (
+        <div className="space-y-6">
+            <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
+                <div>
+                    <h1 className="text-3xl font-black text-white uppercase tracking-tighter">Student Base</h1>
+                    <p className="text-white/30 text-sm font-medium mt-1">{students.length} registered toppers</p>
+                </div>
+                <div className="relative">
+                    <Search size={15} className="absolute left-4 top-1/2 -translate-y-1/2 text-white/25" />
+                    <input
+                        type="text"
+                        placeholder="Search by name, ID, or email..."
+                        className="w-full md:w-80 bg-white/[0.05] border border-white/[0.08] rounded-xl pl-11 pr-4 py-3 text-sm font-medium text-white placeholder:text-white/20 outline-none focus:border-violet-500/50 transition-all"
+                        value={search}
+                        onChange={e => setSearch(e.target.value)}
+                    />
+                </div>
+            </div>
+
+            <div className="bg-white/[0.02] border border-white/[0.06] rounded-2xl overflow-hidden">
+                <div className="overflow-x-auto">
+                    <table className="w-full">
+                        <thead>
+                            <tr className="border-b border-white/[0.06]">
+                                {['Student ID', 'Name', 'Class & Stream', 'Email', 'Status'].map(h => (
+                                    <th key={h} className="px-6 py-4 text-left text-[9px] font-black text-white/20 uppercase tracking-[0.2em]">{h}</th>
+                                ))}
+                            </tr>
+                        </thead>
+                        <tbody className="divide-y divide-white/[0.04]">
+                            {loading ? [...Array(5)].map((_, i) => (
+                                <tr key={i}>
+                                    {[...Array(5)].map((__, j) => (
+                                        <td key={j} className="px-6 py-5">
+                                            <div className="h-3 bg-white/5 rounded animate-pulse" />
+                                        </td>
+                                    ))}
+                                </tr>
+                            )) : filtered.map((s: any, i: number) => (
+                                <tr key={i} className="hover:bg-white/[0.03] transition-colors group">
+                                    <td className="px-6 py-4">
+                                        <code className="text-[11px] font-black text-violet-400 bg-violet-400/10 border border-violet-400/20 px-2.5 py-1 rounded-lg">{s.student_id}</code>
+                                    </td>
+                                    <td className="px-6 py-4">
+                                        <p className="font-bold text-white text-sm">{s.name}</p>
+                                        <p className="text-[10px] text-white/30 uppercase tracking-widest">{s.gender}</p>
+                                    </td>
+                                    <td className="px-6 py-4">
+                                        <p className="text-sm text-white/60 font-medium">{s.class}</p>
+                                        {s.stream && <p className="text-[10px] text-violet-400/70 uppercase tracking-wider">{s.stream}</p>}
+                                    </td>
+                                    <td className="px-6 py-4 text-sm text-white/30 font-medium italic">{s.email}</td>
+                                    <td className="px-6 py-4">
+                                        <div className="flex items-center gap-2">
+                                            <div className="w-1.5 h-1.5 bg-emerald-400 rounded-full" />
+                                            <span className="text-[10px] font-black text-white/30 uppercase tracking-widest">Active</span>
+                                        </div>
+                                    </td>
+                                </tr>
+                            ))}
+                        </tbody>
+                    </table>
+                    {!loading && filtered.length === 0 && (
+                        <div className="py-16 text-center">
+                            <p className="text-white/20 font-bold">No students found</p>
+                        </div>
+                    )}
+                </div>
+            </div>
+        </div>
+    );
+};
+
+// ─────────────────────────────────────────────────────────────────────
+// OPERATORS VIEW
+// ─────────────────────────────────────────────────────────────────────
+const OperatorsView: React.FC<{ currentOperator: Operator }> = ({ currentOperator }) => {
+    const [operators, setOperators] = useState<Operator[]>([]);
+    const [loading, setLoading] = useState(true);
+    const [showAdd, setShowAdd] = useState(false);
+    const [form, setForm] = useState({ email: '', name: '', role: 'founder' as OperatorRole, password: '' });
+    const [adding, setAdding] = useState(false);
+    const [error, setError] = useState('');
+    const [success, setSuccess] = useState('');
+
+    const load = useCallback(async () => {
+        setLoading(true);
+        try { setOperators(await fetchAllOperators()); } catch (_) { }
+        setLoading(false);
+    }, []);
+
+    useEffect(() => { load(); }, [load]);
+
+    const handleAdd = async () => {
+        if (!form.email || !form.name || !form.password) { setError('All fields are required.'); return; }
+        setAdding(true); setError(''); setSuccess('');
+        try {
+            await createOperator(form);
+            setSuccess(`${form.name} has been added as ${form.role}.`);
+            setForm({ email: '', name: '', role: 'founder', password: '' });
+            setShowAdd(false);
+            await load();
+        } catch (e: any) {
+            setError(e.message || 'Failed to add operator.');
+        } finally { setAdding(false); }
+    };
+
+    const handleDelete = async (op: Operator) => {
+        if (op.id === currentOperator.id) { setError("You can't remove yourself."); return; }
+        if (!confirm(`Remove ${op.name} (${op.role})?`)) return;
+        try {
+            await deleteOperator(op.id);
+            await load();
+        } catch (_) { setError('Failed to remove operator.'); }
+    };
+
+    return (
+        <div className="space-y-6">
+            <div className="flex items-center justify-between">
+                <div>
+                    <h1 className="text-3xl font-black text-white uppercase tracking-tighter">Operators</h1>
+                    <p className="text-white/30 text-sm font-medium mt-1">Manage platform access · CEO · Founder · Owner only</p>
+                </div>
+                <button
+                    onClick={() => { setShowAdd(true); setError(''); setSuccess(''); }}
+                    className="flex items-center gap-2 px-5 py-3 bg-violet-600/80 hover:bg-violet-600 border border-violet-500/30 text-white font-black uppercase text-[10px] tracking-widest rounded-xl transition-all active:scale-95 shadow-lg shadow-violet-900/20"
+                >
+                    <Plus size={14} /> Add Operator
+                </button>
+            </div>
+
+            {error && (
+                <div className="flex items-center gap-3 p-4 bg-red-500/10 border border-red-500/20 rounded-xl">
+                    <XCircle size={16} className="text-red-400 shrink-0" />
+                    <p className="text-red-400 text-xs font-bold">{error}</p>
+                    <button onClick={() => setError('')} className="ml-auto text-red-400/60 hover:text-red-400"><XCircle size={14} /></button>
+                </div>
+            )}
+            {success && (
+                <div className="flex items-center gap-3 p-4 bg-emerald-500/10 border border-emerald-500/20 rounded-xl">
+                    <CheckCircle2 size={16} className="text-emerald-400 shrink-0" />
+                    <p className="text-emerald-400 text-xs font-bold">{success}</p>
+                </div>
+            )}
+
+            {/* Add Form Modal */}
+            {showAdd && (
+                <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+                    <div className="absolute inset-0 bg-black/70 backdrop-blur-md" onClick={() => setShowAdd(false)} />
+                    <div className="relative bg-[#0a0a1a] border border-white/10 rounded-3xl p-8 w-full max-w-md z-10 shadow-2xl">
+                        <div className="flex items-center gap-3 mb-6">
+                            <div className="w-10 h-10 bg-violet-600/20 text-violet-400 rounded-xl flex items-center justify-center">
+                                <Plus size={18} />
+                            </div>
+                            <div>
+                                <h3 className="text-lg font-black text-white uppercase tracking-tight">New Operator</h3>
+                                <p className="text-[10px] text-white/30 font-bold uppercase tracking-widest">Grant platform access</p>
+                            </div>
+                        </div>
+
+                        <div className="space-y-4">
+                            {[
+                                { label: 'Full Name', key: 'name', type: 'text', placeholder: 'John Doe' },
+                                { label: 'Email Address', key: 'email', type: 'email', placeholder: 'operator@domain.com' },
+                                { label: 'Password', key: 'password', type: 'password', placeholder: '••••••••' },
+                            ].map(f => (
+                                <div key={f.key}>
+                                    <label className="text-[9px] font-black text-white/30 uppercase tracking-widest ml-1 mb-1.5 block">{f.label}</label>
+                                    <input
+                                        type={f.type} placeholder={f.placeholder}
+                                        className="w-full bg-white/[0.05] border border-white/[0.08] rounded-xl px-4 py-3 text-sm font-medium text-white placeholder:text-white/20 outline-none focus:border-violet-500/50 transition-all"
+                                        value={(form as any)[f.key]}
+                                        onChange={e => setForm(p => ({ ...p, [f.key]: e.target.value }))}
+                                    />
+                                </div>
+                            ))}
+                            <div>
+                                <label className="text-[9px] font-black text-white/30 uppercase tracking-widest ml-1 mb-1.5 block">Role</label>
+                                <select
+                                    className="w-full bg-white/[0.05] border border-white/[0.08] rounded-xl px-4 py-3 text-sm font-medium text-white outline-none focus:border-violet-500/50 transition-all"
+                                    value={form.role}
+                                    onChange={e => setForm(p => ({ ...p, role: e.target.value as OperatorRole }))}
+                                >
+                                    <option value="founder">Founder</option>
+                                    <option value="ceo">CEO</option>
+                                    <option value="owner">Owner</option>
+                                </select>
+                            </div>
+                        </div>
+
+                        <div className="flex gap-3 mt-6">
+                            <button onClick={() => setShowAdd(false)} className="flex-1 py-3 border border-white/10 text-white/40 font-black uppercase text-[10px] tracking-widest rounded-xl hover:border-white/20 hover:text-white/60 transition-all">
+                                Cancel
+                            </button>
+                            <button
+                                onClick={handleAdd}
+                                disabled={adding}
+                                className="flex-1 py-3 bg-violet-600 hover:bg-violet-500 text-white font-black uppercase text-[10px] tracking-widest rounded-xl transition-all active:scale-95 disabled:opacity-50 flex items-center justify-center gap-2"
+                            >
+                                {adding ? <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" /> : <Plus size={14} />}
+                                {adding ? 'Adding...' : 'Add Operator'}
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            )}
+
+            {/* Operators Table */}
+            <div className="bg-white/[0.02] border border-white/[0.06] rounded-2xl overflow-hidden">
+                <div className="divide-y divide-white/[0.04]">
+                    {loading ? [...Array(3)].map((_, i) => (
+                        <div key={i} className="px-6 py-5 flex items-center gap-4 animate-pulse">
+                            <div className="w-10 h-10 bg-white/5 rounded-xl" />
+                            <div className="flex-1 space-y-2">
+                                <div className="h-3 bg-white/5 rounded w-1/4" />
+                                <div className="h-2 bg-white/3 rounded w-1/3" />
+                            </div>
+                        </div>
+                    )) : operators.map(op => {
+                        const rc = ROLE_CONFIG[op.role];
+                        const isYou = op.id === currentOperator.id;
+                        return (
+                            <div key={op.id} className="px-6 py-5 flex items-center gap-4 hover:bg-white/[0.02] transition-colors">
+                                <div className="w-10 h-10 bg-gradient-to-br from-violet-600/20 to-purple-600/20 border border-violet-500/20 rounded-xl flex items-center justify-center text-lg font-black text-violet-400">
+                                    {op.name.charAt(0).toUpperCase()}
+                                </div>
+                                <div className="flex-1 min-w-0">
+                                    <div className="flex items-center gap-2">
+                                        <p className="font-bold text-white text-sm">{op.name}</p>
+                                        {isYou && <span className="text-[8px] font-black text-violet-400 bg-violet-400/10 border border-violet-400/20 px-2 py-0.5 rounded-full uppercase tracking-widest">You</span>}
+                                    </div>
+                                    <p className="text-[11px] text-white/30 font-medium">{op.email}</p>
+                                    {op.student_id && (
+                                        <p className="text-[9px] text-cyan-400/60 font-bold uppercase tracking-widest mt-0.5">🔗 Linked to Student: {op.student_id}</p>
+                                    )}
+                                </div>
+                                <div className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-[10px] font-black uppercase tracking-widest border ${rc.bg} ${rc.color}`}>
+                                    {rc.icon} {rc.label}
+                                </div>
+                                <p className="text-[10px] text-white/20 hidden md:block">{new Date(op.created_at).toLocaleDateString('en-IN')}</p>
+                                {!isYou && (
+                                    <button
+                                        onClick={() => handleDelete(op)}
+                                        className="w-8 h-8 flex items-center justify-center rounded-lg text-white/20 hover:text-red-400 hover:bg-red-400/10 transition-all"
+                                    >
+                                        <Trash2 size={14} />
+                                    </button>
+                                )}
+                            </div>
+                        );
+                    })}
+                    {!loading && operators.length === 0 && (
+                        <div className="py-16 text-center"><p className="text-white/20 font-bold">No operators found</p></div>
+                    )}
+                </div>
+            </div>
+        </div>
+    );
+};
+
+// ─────────────────────────────────────────────────────────────────────
+// SETTINGS VIEW
+// ─────────────────────────────────────────────────────────────────────
+const SettingsView: React.FC = () => {
+    const [maintenance, setMaintenance] = useState<any>(null);
+    const [loading, setLoading] = useState(true);
+    const [saving, setSaving] = useState(false);
+    const [msg, setMsg] = useState<{ type: 'success' | 'error'; text: string } | null>(null);
+
+    useEffect(() => {
+        fetchMaintenanceSettings().then(d => { setMaintenance(d); setLoading(false); });
+    }, []);
+
+    const toggle = async () => {
+        if (!maintenance) return;
+        const newState = !maintenance.maintenance_enabled;
+        try {
+            await updateMaintenanceSettings({ ...maintenance, maintenance_enabled: newState });
+            setMaintenance((p: any) => ({ ...p, maintenance_enabled: newState }));
+            setMsg({ type: 'success', text: newState ? 'Maintenance mode activated.' : 'Platform is now live!' });
+        } catch (_) {
+            setMsg({ type: 'error', text: 'Failed to toggle maintenance.' });
+        }
+        setTimeout(() => setMsg(null), 3000);
+    };
+
+    const save = async () => {
+        if (!maintenance) return;
+        setSaving(true);
+        try {
+            await updateMaintenanceSettings(maintenance);
+            setMsg({ type: 'success', text: 'Settings pushed to platform successfully! ✅' });
+        } catch (e: any) {
+            console.error('Save settings error:', e);
+            setMsg({ type: 'error', text: 'Failed to save. Check permission.' });
+        } finally {
+            setSaving(false);
+            setTimeout(() => setMsg(null), 3000);
+        }
+    };
+
+    return (
+        <div className="space-y-6 max-w-3xl">
+            <div>
+                <h1 className="text-3xl font-black text-white uppercase tracking-tighter">Platform Settings</h1>
+                <p className="text-white/30 text-sm font-medium mt-1">Control maintenance mode and global system variables.</p>
+            </div>
+
+            {msg && (
+                <div className={`flex items-center gap-3 p-4 rounded-xl border ${msg.type === 'success' ? 'bg-emerald-500/10 border-emerald-500/20' : 'bg-red-500/10 border-red-500/20'}`}>
+                    {msg.type === 'success' ? <CheckCircle2 size={16} className="text-emerald-400" /> : <XCircle size={16} className="text-red-400" />}
+                    <p className={`text-xs font-bold ${msg.type === 'success' ? 'text-emerald-400' : 'text-red-400'}`}>{msg.text}</p>
+                </div>
+            )}
+
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                {/* Toggle Card */}
+                <div className="bg-white/[0.02] border border-white/[0.06] rounded-2xl p-6 space-y-6">
+                    <div className="flex items-center gap-4">
+                        <div className={`w-12 h-12 rounded-xl flex items-center justify-center transition-all ${maintenance?.maintenance_enabled ? 'bg-red-500/15 text-red-400' : 'bg-emerald-500/15 text-emerald-400'}`}>
+                            <ShieldAlert size={24} />
+                        </div>
+                        <div>
+                            <h3 className="text-sm font-black text-white uppercase tracking-tight">Maintenance Mode</h3>
+                            <p className="text-[10px] text-white/30 font-medium">Toggle platform access.</p>
+                        </div>
+                    </div>
+
+                    <div className={`p-4 rounded-xl border flex items-center gap-3 ${maintenance?.maintenance_enabled ? 'bg-red-500/5 border-red-500/15' : 'bg-emerald-500/5 border-emerald-500/15'}`}>
+                        <div className={`w-2.5 h-2.5 rounded-full ${maintenance?.maintenance_enabled ? 'bg-red-400 animate-pulse' : 'bg-emerald-400'}`} />
+                        <span className={`text-[10px] font-black uppercase tracking-widest ${maintenance?.maintenance_enabled ? 'text-red-400' : 'text-emerald-400'}`}>
+                            {loading ? 'Loading...' : maintenance?.maintenance_enabled ? 'Emergency Shutdown Active' : 'Normal Operations'}
+                        </span>
+                    </div>
+
+                    <button
+                        onClick={toggle}
+                        disabled={loading}
+                        className={`w-full py-4 rounded-xl font-black uppercase text-[11px] tracking-widest transition-all active:scale-95 border ${maintenance?.maintenance_enabled
+                            ? 'bg-white/5 border-white/10 text-white hover:bg-white/10'
+                            : 'bg-gradient-to-r from-red-600/80 to-rose-600/80 border-red-500/20 text-white hover:from-red-600 hover:to-rose-600 shadow-lg shadow-red-900/20'
+                            }`}
+                    >
+                        {maintenance?.maintenance_enabled ? '✅ Restore Platform Access' : '🔴 Emergency Grid Shutdown'}
+                    </button>
+                </div>
+
+                {/* Message & Schedule Card */}
+                <div className="bg-white/[0.02] border border-white/[0.06] rounded-2xl p-6 space-y-5">
+                    <div className="flex items-center gap-3">
+                        <MessageSquare size={18} className="text-violet-400" />
+                        <h3 className="text-sm font-black text-white uppercase tracking-tight">Smart Scheduling</h3>
+                    </div>
+
+                    <div>
+                        <label className="text-[9px] font-black text-white/30 uppercase tracking-widest ml-1 mb-2 block">Maintenance Message</label>
+                        <textarea
+                            className="w-full bg-white/[0.05] border border-white/[0.08] rounded-xl px-4 py-3 text-sm font-medium text-white placeholder:text-white/20 outline-none focus:border-violet-500/50 transition-all min-h-[90px] resize-none"
+                            placeholder="We'll be back soon..."
+                            value={maintenance?.maintenance_message || ''}
+                            onChange={e => setMaintenance((p: any) => ({ ...p, maintenance_message: e.target.value }))}
+                        />
+                    </div>
+
+                    <div>
+                        <label className="text-[9px] font-black text-white/30 uppercase tracking-widest ml-1 mb-2 block">Auto Re-Open Time</label>
+                        <div className="relative">
+                            <Calendar size={14} className="absolute left-3.5 top-1/2 -translate-y-1/2 text-white/25" />
+                            <input
+                                type="datetime-local"
+                                className="w-full bg-white/[0.05] border border-white/[0.08] rounded-xl pl-10 pr-4 py-3 text-sm font-medium text-white outline-none focus:border-violet-500/50 transition-all [color-scheme:dark]"
+                                value={maintenance?.maintenance_opening_date
+                                    ? new Date(new Date(maintenance.maintenance_opening_date).getTime() - new Date().getTimezoneOffset() * 60000).toISOString().slice(0, 16)
+                                    : ''}
+                                onChange={e => setMaintenance((p: any) => ({ ...p, maintenance_opening_date: e.target.value || null }))}
+                            />
+                        </div>
+                        <p className="text-[8px] text-violet-400/50 font-bold uppercase tracking-widest ml-1 mt-1.5">✨ App auto-activates at this time.</p>
+                    </div>
+
+                    <button
+                        onClick={save}
+                        disabled={saving || loading}
+                        className="w-full py-3.5 bg-violet-600/80 hover:bg-violet-600 border border-violet-500/20 text-white font-black uppercase text-[10px] tracking-widest rounded-xl transition-all active:scale-95 disabled:opacity-50 flex items-center justify-center gap-2 shadow-lg shadow-violet-900/20"
+                    >
+                        {saving ? <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" /> : <Zap size={14} />}
+                        {saving ? 'Pushing...' : 'Push to Platform'}
+                    </button>
+                </div>
+            </div>
+        </div>
+    );
+};
+
+// ─────────────────────────────────────────────────────────────────────
+// MAIN APP
+// ─────────────────────────────────────────────────────────────────────
+const AdminApp: React.FC = () => {
+    const [operator, setOperator] = useState<Operator | null>(null);
+    const [view, setView] = useState<View>('dashboard');
+    const [stats, setStats] = useState<any>(null);
+    const [students, setStudents] = useState<any[]>([]);
+    const [loading, setLoading] = useState(false);
+    const [sidebarOpen, setSidebarOpen] = useState(false);
+
+    // Restore session on mount
+    useEffect(() => {
+        const saved = localStorage.getItem('topper_admin_operator');
+        if (saved) {
+            try { setOperator(JSON.parse(saved)); } catch (_) { }
+        }
+    }, []);
+
+    const loadData = useCallback(async () => {
+        if (!operator) return;
+        setLoading(true);
+        try {
+            const s = await fetchAdminStats();
+            setStats(s);
+            if (view === 'students') {
+                const stds = await fetchAllStudents();
+                setStudents(stds);
+            }
+        } catch (_) { }
+        setLoading(false);
+    }, [operator, view]);
+
+    useEffect(() => {
+        if (operator) loadData();
+        // Hide splash when app starts
+        if ((window as any).hideSplash) {
+            setTimeout((window as any).hideSplash, 1000);
+        }
+    }, [loadData, operator]);
+
+    const handleLogin = (op: Operator) => {
+        setOperator(op);
+        localStorage.setItem('topper_admin_operator', JSON.stringify(op));
+    };
+
+    const handleLogout = async () => {
+        await signOutOperator();
+        setOperator(null);
+        localStorage.removeItem('topper_admin_operator');
+        setStats(null);
+        setStudents([]);
+    };
+
+    if (!operator) return <LoginPage onLogin={handleLogin} />;
+
+    const roleConf = ROLE_CONFIG[operator.role];
+
+    const navItems: { id: View; icon: React.ReactNode; label: string }[] = [
+        { id: 'dashboard', icon: <LayoutDashboard size={16} />, label: 'Dashboard' },
+        { id: 'students', icon: <Users size={16} />, label: 'Students' },
+        { id: 'operators', icon: <Shield size={16} />, label: 'Operators' },
+        { id: 'settings', icon: <Settings size={16} />, label: 'Settings' },
+    ];
+
+    return (
+        <div className="min-h-screen bg-[#050510] flex text-white overflow-hidden">
+            {/* Mobile overlay */}
+            {sidebarOpen && <div className="fixed inset-0 bg-black/60 z-20 md:hidden" onClick={() => setSidebarOpen(false)} />}
+
+            {/* Sidebar */}
+            <aside className={`fixed md:relative z-30 md:z-auto h-screen w-72 flex flex-col bg-[#07070f] border-r border-white/[0.06] transition-transform duration-300 ${sidebarOpen ? 'translate-x-0' : '-translate-x-full md:translate-x-0'}`}>
+                {/* Brand */}
+                <div className="flex items-center gap-3 px-6 py-6 border-b border-white/[0.06]">
+                    <img src={LOGO_URL} className="w-9 h-9 rounded-xl border border-white/10" />
+                    <div>
+                        <p className="text-sm font-black text-white uppercase tracking-tighter leading-none">CBSE TOPPERS</p>
+                        <p className="text-[9px] font-bold text-violet-400/60 uppercase tracking-[0.3em] mt-0.5">Admin Terminal</p>
+                    </div>
+                </div>
+
+                {/* Nav */}
+                <nav className="flex-1 px-3 py-4 space-y-1 overflow-y-auto">
+                    <p className="text-[8px] font-black text-white/15 uppercase tracking-[0.3em] px-3 mb-2">Navigation</p>
+                    {navItems.map(n => (
+                        <SidebarItem key={n.id} icon={n.icon} label={n.label} active={view === n.id}
+                            onClick={() => { setView(n.id); setSidebarOpen(false); }} />
+                    ))}
+                </nav>
+
+                {/* Operator Info */}
+                <div className="p-4 border-t border-white/[0.06]">
+                    <div className="flex items-center gap-3 p-3 bg-white/[0.03] rounded-xl border border-white/[0.06] mb-3">
+                        <div className="w-9 h-9 bg-gradient-to-br from-violet-600/30 to-purple-600/30 border border-violet-500/20 rounded-xl flex items-center justify-center font-black text-violet-300 text-sm">
+                            {operator.name.charAt(0).toUpperCase()}
+                        </div>
+                        <div className="flex-1 min-w-0">
+                            <p className="text-xs font-black text-white truncate">{operator.name}</p>
+                            <div className={`inline-flex items-center gap-1 text-[8px] font-black uppercase tracking-widest ${roleConf.color}`}>
+                                {roleConf.icon} {roleConf.label}
+                            </div>
+                        </div>
+                    </div>
+                    <button
+                        onClick={handleLogout}
+                        className="w-full flex items-center gap-3 px-4 py-3 rounded-xl text-[10px] font-black uppercase tracking-widest text-red-400/60 hover:text-red-400 hover:bg-red-400/5 transition-all"
+                    >
+                        <LogOut size={14} /> Sign Out
+                    </button>
+                </div>
+            </aside>
+
+            {/* Main Content */}
+            <div className="flex-1 flex flex-col min-h-screen overflow-hidden">
+                {/* Top Bar (mobile) */}
+                <div className="md:hidden flex items-center justify-between px-4 py-4 border-b border-white/[0.06] bg-[#07070f]">
+                    <button onClick={() => setSidebarOpen(true)} className="p-2 text-white/40 hover:text-white">
+                        <div className="space-y-1.5">
+                            <div className="w-5 h-0.5 bg-current rounded" />
+                            <div className="w-4 h-0.5 bg-current rounded" />
+                            <div className="w-5 h-0.5 bg-current rounded" />
+                        </div>
+                    </button>
+                    <p className="text-sm font-black text-white uppercase tracking-tighter">CBSE TOPPERS</p>
+                    <div className="w-8" />
+                </div>
+
+                {/* Ambient glow */}
+                <div className="absolute top-0 right-0 w-[500px] h-[300px] bg-violet-900/10 blur-[120px] rounded-full pointer-events-none" />
+
+                <main className="flex-1 overflow-y-auto p-6 md:p-8 relative">
+                    {view === 'dashboard' && <DashboardView stats={stats} operator={operator} onRefresh={loadData} loading={loading} />}
+                    {view === 'students' && <StudentsView students={students} loading={loading} />}
+                    {view === 'operators' && <OperatorsView currentOperator={operator} />}
+                    {view === 'settings' && <SettingsView />}
+                </main>
+            </div>
+        </div>
+    );
+};
+
+export default AdminApp;
