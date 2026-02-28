@@ -10,13 +10,18 @@
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap"
     rel="stylesheet">
+  <script>
+    (function () {
+      const theme = localStorage.getItem('topper_admin_theme') || 'dark';
+      if (theme === 'dark') {
+        document.documentElement.classList.add('dark');
+      }
+    })();
+  </script>
   <style>
     body {
       margin: 0;
       background-color: #050510;
-      display: flex;
-      align-items: center;
-      justify-content: center;
       min-height: 100vh;
       overflow: hidden;
     }

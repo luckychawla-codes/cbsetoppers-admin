@@ -4,7 +4,7 @@ import {
     ShieldAlert, Calendar, Clock, TrendingUp, Activity,
     Shield, Plus, Trash2, Eye, EyeOff, ChevronRight,
     Zap, BarChart3, AlertTriangle, CheckCircle2, XCircle,
-    RefreshCw, MessageSquare, Crown, Star, Lock, Sun, Moon
+    RefreshCw, MessageSquare, Crown, Star, Lock
 } from 'lucide-react';
 import {
     fetchAdminStats, fetchAllStudents, fetchMaintenanceSettings,
@@ -725,7 +725,6 @@ const AdminApp: React.FC = () => {
     const [students, setStudents] = useState<any[]>([]);
     const [loading, setLoading] = useState(false);
     const [sidebarOpen, setSidebarOpen] = useState(false);
-    const [theme, setTheme] = useState<'light' | 'dark'>(() => (localStorage.getItem('topper_admin_theme') as 'dark' | 'light') || 'dark');
 
     // Restore session on mount
     useEffect(() => {
@@ -734,11 +733,6 @@ const AdminApp: React.FC = () => {
             try { setOperator(JSON.parse(saved)); } catch (_) { }
         }
     }, []);
-
-    useEffect(() => {
-        localStorage.setItem('topper_admin_theme', theme);
-        document.documentElement.classList.toggle('dark', theme === 'dark');
-    }, [theme]);
 
     const loadData = useCallback(async () => {
         if (!operator) return;
@@ -824,14 +818,6 @@ const AdminApp: React.FC = () => {
                             </div>
                         </div>
                     </div>
-                    <button
-                        onClick={() => setTheme(t => t === 'dark' ? 'light' : 'dark')}
-                        className="w-full flex items-center justify-between px-4 py-3 rounded-xl text-[10px] font-black uppercase tracking-widest text-slate-900/60 dark:text-white/60 hover:text-slate-900 dark:hover:text-white hover:bg-slate-900/5 dark:hover:bg-white/5 transition-all mb-2"
-                    >
-                        <span className="flex items-center gap-3">
-                            {theme === 'dark' ? <Sun size={14} /> : <Moon size={14} />} {theme === 'dark' ? 'Light Mode' : 'Dark Mode'}
-                        </span>
-                    </button>
                     <button
                         onClick={handleLogout}
                         className="w-full flex items-center gap-3 px-4 py-3 rounded-xl text-[10px] font-black uppercase tracking-widest text-red-400/60 hover:text-red-400 hover:bg-red-400/5 transition-all"
