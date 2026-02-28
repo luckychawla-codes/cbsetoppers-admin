@@ -787,7 +787,7 @@ const AdminApp: React.FC = () => {
     ];
 
     return (
-        <div className="min-h-screen bg-slate-50 dark:bg-[#050510] flex text-slate-900 dark:text-white overflow-hidden">
+        <div className="h-screen w-full bg-slate-50 dark:bg-[#050510] flex text-slate-900 dark:text-white overflow-hidden">
             {/* Mobile overlay */}
             {sidebarOpen && <div className="fixed inset-0 bg-black/60 z-20 md:hidden" onClick={() => setSidebarOpen(false)} />}
 
@@ -842,7 +842,7 @@ const AdminApp: React.FC = () => {
             </aside>
 
             {/* Main Content */}
-            <div className="flex-1 flex flex-col min-h-screen overflow-hidden">
+            <div className="flex-1 flex flex-col h-full overflow-hidden relative">
                 {/* Top Bar (mobile) */}
                 <div className="md:hidden flex items-center justify-between px-4 py-4 border-b border-slate-900/[0.06] dark:border-white/[0.06] bg-white dark:bg-[#07070f]">
                     <button onClick={() => setSidebarOpen(true)} className="p-2 text-slate-900/40 dark:text-white/40 hover:text-slate-900 dark:hover:text-white">
