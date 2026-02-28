@@ -222,7 +222,7 @@ const StatCard: React.FC<{ label: string; value: string | number; icon: React.Re
 // ─────────────────────────────────────────────────────────────────────
 // DASHBOARD VIEW
 // ─────────────────────────────────────────────────────────────────────
-const DashboardView: React.FC<{ stats: any; operator: Operator; onRefresh: () => void; loading: boolean }> = ({ stats, operator, onRefresh, loading }) => {
+const DashboardView: React.FC<{ stats: any; operator: Operator; onRefresh: () => void; loading: boolean; setView: (v: View) => void }> = ({ stats, operator, onRefresh, loading, setView }) => {
     const roleConf = ROLE_CONFIG[operator.role];
 
     return (
@@ -712,7 +712,7 @@ const ContentView: React.FC = () => {
     };
 
     const sections = contents.filter(c => c.type === 'section');
-    const folders = contents.filter(c => c.type === 'folder');
+    const folders = contents.filter(c => c.type === 'folder' || c.type === 'subject_core' || c.type === 'subject_additional' || c.type === 'competitive_exam' || c.type === 'stream');
 
     const typeIcons: Record<string, string> = {
         section: '📁', folder: '📂', subject_core: '📚', subject_additional: '📖',
@@ -818,7 +818,9 @@ const ContentView: React.FC = () => {
                                     onChange={e => setForm({ ...form, type: e.target.value as ContentType })}
                                 >
                                     <option value="section">Section Grid</option>
-                                    <option value="folder">Subject Folder</option>
+                                    <option value="subject_core">Core Subject Folder</option>
+                                    <option value="subject_additional">Additional Subject Folder</option>
+                                    <option value="folder">General Sub-Folder</option>
                                     <option value="file">PDF / Document</option>
                                     <option value="video">YouTube Video</option>
                                     <option value="quiz">Mock Test / Quiz</option>
@@ -1244,7 +1246,7 @@ const AdminApp: React.FC = () => {
                             transition={{ duration: 0.3, ease: [0.4, 0, 0.2, 1] }}
                             className="h-full"
                         >
-                            {view === 'dashboard' && <DashboardView stats={stats} operator={operator} onRefresh={loadData} loading={loading} />}
+                            {view === 'dashboard' && <DashboardView stats={stats} operator={operator} onRefresh={loadData} loading={loading} setView={setView} />}
                             {view === 'students' && <StudentsView students={students} loading={loading} />}
                             {view === 'operators' && <OperatorsView currentOperator={operator} />}
                             {view === 'content' && <ContentView />}
