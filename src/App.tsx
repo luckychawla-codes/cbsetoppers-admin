@@ -684,11 +684,21 @@ const ContentView: React.FC = () => {
     const handlePublish = async () => {
         if (!form.title) return;
         try {
-            await createDashboardContent({ ...form, order_index: contents.length });
+            const dataToPublish = { ...form, order_index: contents.length };
+            // Clean up empty strings for UUID/Target fields to avoid DB errors
+            if (!dataToPublish.parent_id) delete dataToPublish.parent_id;
+            if (!dataToPublish.class_target) delete dataToPublish.class_target;
+            if (!dataToPublish.stream_target) delete dataToPublish.stream_target;
+            if (!dataToPublish.exam_target) delete dataToPublish.exam_target;
+
+            await createDashboardContent(dataToPublish);
             setForm({ title: '', type: 'section', content_link: '', parent_id: '', class_target: '', stream_target: '', exam_target: '' });
             setIsAdding(false);
             await loadAll();
-        } catch (e) { alert('Failed to publish'); }
+        } catch (e) {
+            console.error('Publish error:', e);
+            alert('Failed to publish. Ensure you have the correct permissions and the database is online.');
+        }
     };
 
     const handleDelete = async (id: string, title: string) => {
