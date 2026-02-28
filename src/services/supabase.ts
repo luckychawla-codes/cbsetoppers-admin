@@ -175,3 +175,113 @@ export const updateMaintenanceSettings = async (settings: any) => {
     if (error) throw error;
     return data;
 };
+
+// ─── Content Management ───────────────────────────────────────────────
+
+export type ContentType = 'section' | 'folder' | 'subject_core' | 'subject_additional' | 'file' | 'photo' | 'video' | 'competitive_exam' | 'stream' | 'quiz';
+
+export interface DashboardContent {
+    id: string;
+    title: string;
+    type: ContentType;
+    content_link?: string;
+    parent_id?: string;
+    order_index: number;
+    class_target?: string;
+    stream_target?: string;
+    exam_target?: string;
+    created_at: string;
+}
+
+export const fetchDashboardContent = async (): Promise<DashboardContent[]> => {
+    const { data, error } = await supabase
+        .from('dashboard_content')
+        .select('*')
+        .order('order_index', { ascending: true });
+    if (error) throw error;
+    return data || [];
+};
+
+export const createDashboardContent = async (content: Partial<DashboardContent>) => {
+    const { data, error } = await supabase
+        .from('dashboard_content')
+        .insert([content])
+        .select()
+        .single();
+    if (error) throw error;
+    return data;
+};
+
+export const deleteDashboardContent = async (id: string) => {
+    const { error } = await supabase.from('dashboard_content').delete().eq('id', id);
+    if (error) throw error;
+};
+
+// Category Management
+export const fetchClasses = async () => {
+    const { data, error } = await supabase.from('classes').select('*').order('name');
+    if (error) throw error;
+    return data || [];
+};
+
+export const fetchStreams = async () => {
+    const { data, error } = await supabase.from('streams').select('*').order('name');
+    if (error) throw error;
+    return data || [];
+};
+
+export const fetchExams = async () => {
+    const { data, error } = await supabase.from('competitive_exams').select('*').order('name');
+    if (error) throw error;
+    return data || [];
+};
+
+export const fetchSubjects = async () => {
+    const { data, error } = await supabase.from('subjects').select('*').order('name');
+    if (error) throw error;
+    return data || [];
+};
+
+export const createClass = async (name: string) => {
+    const { data, error } = await supabase.from('classes').insert([{ name }]).select().single();
+    if (error) throw error;
+    return data;
+};
+
+export const createStream = async (name: string) => {
+    const { data, error } = await supabase.from('streams').insert([{ name }]).select().single();
+    if (error) throw error;
+    return data;
+};
+
+export const createExam = async (name: string) => {
+    const { data, error } = await supabase.from('competitive_exams').insert([{ name }]).select().single();
+    if (error) throw error;
+    return data;
+};
+
+export const createSubject = async (name: string, streamId?: string, className?: string) => {
+    const { data, error } = await supabase.from('subjects').insert([{ name, stream_id: streamId, class_name: className }]).select().single();
+    if (error) throw error;
+    return data;
+};
+
+export const deleteClass = async (id: string) => {
+    const { error } = await supabase.from('classes').delete().eq('id', id);
+    if (error) throw error;
+};
+
+export const deleteStream = async (id: string) => {
+    const { error } = await supabase.from('streams').delete().eq('id', id);
+    if (error) throw error;
+};
+
+export const deleteExam = async (id: string) => {
+    const { error } = await supabase.from('competitive_exams').delete().eq('id', id);
+    if (error) throw error;
+};
+
+export const deleteSubject = async (id: string) => {
+    const { error } = await supabase.from('subjects').delete().eq('id', id);
+    if (error) throw error;
+};

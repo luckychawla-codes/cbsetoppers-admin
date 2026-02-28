@@ -1,19 +1,25 @@
 import React, { useState, useEffect, useCallback } from 'react';
+import { motion, AnimatePresence } from 'framer-motion';
 import {
     LayoutDashboard, Users, Settings, LogOut, Search,
     ShieldAlert, Calendar, Clock, TrendingUp, Activity,
     Shield, Plus, Trash2, Eye, EyeOff, ChevronRight,
     Zap, BarChart3, AlertTriangle, CheckCircle2, XCircle,
-    RefreshCw, MessageSquare, Crown, Star, Lock, Sun, Moon
+    RefreshCw, MessageSquare, Crown, Star, Lock, Sun, Moon, BookOpen
 } from 'lucide-react';
 import {
     fetchAdminStats, fetchAllStudents, fetchMaintenanceSettings,
     updateMaintenanceSettings, supabase, signInOperator, signOutOperator,
     fetchAllOperators, createOperator, deleteOperator,
-    Operator, OperatorRole
+    Operator, OperatorRole,
+    fetchDashboardContent, createDashboardContent, deleteDashboardContent,
+    fetchClasses, fetchStreams, fetchExams, fetchSubjects,
+    createClass, createStream, createExam, createSubject,
+    deleteClass, deleteStream, deleteExam, deleteSubject,
+    DashboardContent, ContentType
 } from './services/supabase';
 
-type View = 'dashboard' | 'students' | 'settings' | 'operators';
+type View = 'dashboard' | 'students' | 'content' | 'settings' | 'operators';
 
 const LOGO_URL = "https://i.ibb.co/vC4MYFFk/1770137585956.png";
 
@@ -63,12 +69,22 @@ const LoginPage: React.FC<{ onLogin: (op: Operator) => void }> = ({ onLogin }) =
     };
 
     return (
-        <div className="min-h-screen bg-slate-50 dark:bg-[#050510] flex flex-col items-center justify-center p-8 relative overflow-hidden">
+        <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className="min-h-screen bg-slate-50 dark:bg-[#050510] flex flex-col items-center justify-center p-8 relative overflow-hidden"
+        >
             {/* Ambient glows */}
             <div className="absolute top-0 left-1/2 -translate-x-1/2 w-[800px] h-[400px] bg-violet-600/10 blur-[120px] rounded-full pointer-events-none animate-pulse-slow" />
             <div className="absolute bottom-0 right-0 w-[500px] h-[500px] bg-indigo-700/5 blur-[100px] rounded-full pointer-events-none" />
 
-            <div className="relative w-full max-w-[400px] z-10 animate-up">
+            <motion.div
+                initial={{ opacity: 0, y: 20 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ type: 'spring', damping: 25, stiffness: 200 }}
+                className="relative w-full max-w-[400px] z-10"
+            >
                 {/* Brand - Direct on screen */}
                 <div className="flex flex-col items-center gap-6 mb-12">
                     <div className="relative group">
@@ -121,10 +137,14 @@ const LoginPage: React.FC<{ onLogin: (op: Operator) => void }> = ({ onLogin }) =
                     </div>
 
                     {error && (
-                        <div className="flex items-center gap-3 p-4 bg-red-500/5 border border-red-500/10 rounded-2xl animate-shake">
+                        <motion.div
+                            initial={{ opacity: 0, x: -10 }}
+                            animate={{ opacity: 1, x: 0 }}
+                            className="flex items-center gap-3 p-4 bg-red-500/5 border border-red-500/10 rounded-2xl animate-shake"
+                        >
                             <XCircle size={18} className="text-red-500 shrink-0" />
                             <p className="text-red-500 text-[11px] font-bold">{error}</p>
-                        </div>
+                        </motion.div>
                     )}
 
                     <button
@@ -143,8 +163,8 @@ const LoginPage: React.FC<{ onLogin: (op: Operator) => void }> = ({ onLogin }) =
                 <p className="text-center text-[9px] text-slate-900/10 dark:text-white/10 font-black uppercase tracking-[0.3em] mt-16">
                     Restricted Access · v3.0 Final
                 </p>
-            </div>
-        </div>
+            </motion.div>
+        </motion.div>
     );
 };
 
@@ -152,37 +172,51 @@ const LoginPage: React.FC<{ onLogin: (op: Operator) => void }> = ({ onLogin }) =
 // SIDEBAR ITEM
 // ─────────────────────────────────────────────────────────────────────
 const SidebarItem: React.FC<{ icon: React.ReactNode; label: string; active: boolean; onClick: () => void; badge?: number }> = ({ icon, label, active, onClick, badge }) => (
-    <button
+    <motion.button
+        whileHover={{ x: 5 }}
+        whileTap={{ scale: 0.98 }}
         onClick={onClick}
-        className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl text-[11px] font-black uppercase tracking-widest transition-all group relative${active
-            ? 'bg-violet-600/20 text-violet-400 border border-violet-500/20'
+        className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl text-[11px] font-black uppercase tracking-widest transition-all group relative ${active
+            ? 'text-violet-400'
             : 'text-slate-900/30 dark:text-white/30 hover:text-slate-900/60 dark:hover:text-white/60 hover:bg-slate-900/[0.04] dark:hover:bg-white/[0.04]'
             }`}
     >
-        <span className={`transition-all${active ? 'text-violet-400' : 'text-slate-900/25 dark:text-white/25 group-hover:text-slate-900/50 dark:group-hover:text-white/50'}`}>{icon}</span>
-        {label}
-        {badge !== undefined && badge > 0 && (
-            <span className="ml-auto bg-violet-500 text-slate-900 dark:text-white text-[8px] font-black px-2 py-0.5 rounded-full">{badge}</span>
+        {active && (
+            <motion.div
+                layoutId="active-bg"
+                className="absolute inset-0 bg-violet-600/10 border border-violet-500/20 rounded-xl"
+                transition={{ type: 'spring', bounce: 0.15, duration: 0.5 }}
+            />
         )}
-        {active && <ChevronRight size={12} className="ml-auto text-violet-500" />}
-    </button>
+        <span className={`relative transition-all ${active ? 'text-violet-400' : 'text-slate-900/25 dark:text-white/25 group-hover:text-slate-900/50 dark:group-hover:text-white/50'}`}>{icon}</span>
+        <span className="relative">{label}</span>
+        {badge !== undefined && badge > 0 && (
+            <span className="relative ml-auto bg-violet-500 text-slate-900 dark:text-white text-[8px] font-black px-2 py-0.5 rounded-full">{badge}</span>
+        )}
+        {active && <ChevronRight size={12} className="relative ml-auto text-violet-500" />}
+    </motion.button>
 );
 
 // ─────────────────────────────────────────────────────────────────────
 // STAT CARD
 // ─────────────────────────────────────────────────────────────────────
+// STAT CARD
+// ─────────────────────────────────────────────────────────────────────
 const StatCard: React.FC<{ label: string; value: string | number; icon: React.ReactNode; sub: string; color: string }> = ({ label, value, icon, sub, color }) => (
-    <div className="bg-slate-900/[0.03] dark:bg-white/[0.03] border border-slate-900/[0.06] dark:border-white/[0.06] rounded-2xl p-6 hover:border-slate-900/[0.12] dark:hover:border-white/[0.12] hover:bg-slate-900/[0.05] dark:hover:bg-white/[0.05] transition-all group">
+    <motion.div
+        whileHover={{ y: -5, scale: 1.02 }}
+        className="bg-slate-900/[0.03] dark:bg-white/[0.03] border border-slate-900/[0.06] dark:border-white/[0.06] rounded-2xl p-6 hover:border-slate-900/[0.12] dark:hover:border-white/[0.12] hover:bg-slate-900/[0.05] dark:hover:bg-white/[0.05] transition-all group cursor-default shadow-sm hover:shadow-xl hover:shadow-violet-500/5"
+    >
         <div className="flex items-start justify-between mb-5">
-            <div className={`w-10 h-10 rounded-xl flex items-center justify-center${color}bg-current/10`} style={{ backgroundColor: 'color-mix(in srgb, currentColor 10%, transparent)' }}>
+            <div className={`w-10 h-10 rounded-xl flex items-center justify-center ${color} bg-current/10`} style={{ backgroundColor: 'color-mix(in srgb, currentColor 10%, transparent)' }}>
                 <div className="[&>*]:w-5 [&>*]:h-5">{icon}</div>
             </div>
             <Activity size={14} className="text-slate-900/10 dark:text-white/10 group-hover:text-slate-900/20 dark:group-hover:text-white/20 transition-colors" />
         </div>
-        <p className={`text-3xl font-black${color}tracking-tighter mb-1`}>{value}</p>
+        <p className={`text-3xl font-black ${color} tracking-tighter mb-1`}>{value}</p>
         <p className="text-[11px] font-black text-slate-900/20 dark:text-white/20 uppercase tracking-widest mb-1">{label}</p>
         <p className="text-[10px] text-slate-900/15 dark:text-white/15 font-medium">{sub}</p>
-    </div>
+    </motion.div>
 );
 
 // ─────────────────────────────────────────────────────────────────────
@@ -196,19 +230,31 @@ const DashboardView: React.FC<{ stats: any; operator: Operator; onRefresh: () =>
             {/* Header */}
             <div className="flex items-start justify-between">
                 <div>
-                    <div className={`inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-[9px] font-black uppercase tracking-widest border mb-3${roleConf.bg}${roleConf.color}`}>
+                    <div className={`inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-[9px] font-black uppercase tracking-widest border mb-3 ${roleConf.bg} ${roleConf.color}`}>
                         {roleConf.icon} {roleConf.label}
                     </div>
                     <h1 className="text-3xl font-black text-slate-900 dark:text-white uppercase tracking-tighter">Command Center</h1>
                     <p className="text-slate-900/30 dark:text-white/30 text-sm font-medium mt-1">Welcome back, {operator.name.split(' ')[0]}. Here's your platform overview.</p>
                 </div>
-                <button
-                    onClick={onRefresh}
-                    disabled={loading}
-                    className="flex items-center gap-2 px-4 py-2.5 bg-slate-900/[0.05] dark:bg-white/[0.05] border border-slate-900/[0.08] dark:border-white/[0.08] rounded-xl text-[10px] font-black text-slate-900/40 dark:text-white/40 uppercase tracking-widest hover:text-slate-900/60 dark:hover:text-white/60 hover:bg-slate-900/[0.08] dark:hover:bg-white/[0.08] transition-all active:scale-95"
-                >
-                    <RefreshCw size={13} className={loading ? 'animate-spin' : ''} /> Refresh
-                </button>
+                <div className="flex items-center gap-3">
+                    <motion.button
+                        whileHover={{ scale: 1.05 }}
+                        whileTap={{ scale: 0.95 }}
+                        onClick={() => setView('content')}
+                        className="flex items-center gap-2 px-4 py-2.5 bg-violet-600 border border-violet-500 rounded-xl text-[10px] font-black text-white uppercase tracking-widest hover:bg-violet-700 transition-all shadow-lg shadow-violet-900/20"
+                    >
+                        <Settings size={13} /> Open Content Manager
+                    </motion.button>
+                    <motion.button
+                        whileHover={{ scale: 1.05 }}
+                        whileTap={{ scale: 0.95 }}
+                        onClick={onRefresh}
+                        disabled={loading}
+                        className="flex items-center gap-2 px-4 py-2.5 bg-slate-900/[0.05] dark:bg-white/[0.05] border border-slate-900/[0.08] dark:border-white/[0.08] rounded-xl text-[10px] font-black text-slate-900/40 dark:text-white/40 uppercase tracking-widest hover:text-slate-900/60 dark:hover:text-white/60 hover:bg-slate-900/[0.08] dark:hover:bg-white/[0.08] transition-all"
+                    >
+                        <RefreshCw size={13} className={loading ? 'animate-spin' : ''} /> Refresh
+                    </motion.button>
+                </div>
             </div>
 
             {/* Stats Grid */}
@@ -582,6 +628,299 @@ const OperatorsView: React.FC<{ currentOperator: Operator }> = ({ currentOperato
 };
 
 // ─────────────────────────────────────────────────────────────────────
+// CONTENT MANAGER VIEW (IFRAME)
+// ─────────────────────────────────────────────────────────────────────
+
+// ─────────────────────────────────────────────────────────────────────
+// CONTENT MANAGER VIEW (NATIVE)
+// ─────────────────────────────────────────────────────────────────────
+const ContentView: React.FC = () => {
+    const [contents, setContents] = useState<DashboardContent[]>([]);
+    const [loading, setLoading] = useState(true);
+    const [isAdding, setIsAdding] = useState(false);
+    const [isManagingCats, setIsManagingCats] = useState(false);
+
+    // Meta Categories
+    const [dbClasses, setDbClasses] = useState<any[]>([]);
+    const [dbStreams, setDbStreams] = useState<any[]>([]);
+    const [dbExams, setDbExams] = useState<any[]>([]);
+    const [dbSubjects, setDbSubjects] = useState<any[]>([]);
+
+    // Form State
+    const [form, setForm] = useState<Partial<DashboardContent>>({
+        title: '',
+        type: 'section',
+        content_link: '',
+        parent_id: '',
+        class_target: '',
+        stream_target: '',
+        exam_target: ''
+    });
+
+    // Category Forms
+    const [newCat, setNewCat] = useState({ type: 'class', name: '', linkId: '' });
+
+    const loadAll = useCallback(async () => {
+        setLoading(true);
+        try {
+            const [c, cls, st, ex, sub] = await Promise.all([
+                fetchDashboardContent(),
+                fetchClasses(),
+                fetchStreams(),
+                fetchExams(),
+                fetchSubjects()
+            ]);
+            setContents(c);
+            setDbClasses(cls);
+            setDbStreams(st);
+            setDbExams(ex);
+            setDbSubjects(sub);
+        } catch (_) { }
+        setLoading(false);
+    }, []);
+
+    useEffect(() => { loadAll(); }, [loadAll]);
+
+    const handlePublish = async () => {
+        if (!form.title) return;
+        try {
+            await createDashboardContent({ ...form, order_index: contents.length });
+            setForm({ title: '', type: 'section', content_link: '', parent_id: '', class_target: '', stream_target: '', exam_target: '' });
+            setIsAdding(false);
+            await loadAll();
+        } catch (e) { alert('Failed to publish'); }
+    };
+
+    const handleDelete = async (id: string, title: string) => {
+        if (!confirm(`Permanently delete "${title}"?`)) return;
+        try {
+            await deleteDashboardContent(id);
+            await loadAll();
+        } catch (_) { alert('Delete failed'); }
+    };
+
+    const handleAddCat = async () => {
+        if (!newCat.name) return;
+        try {
+            if (newCat.type === 'class') await createClass(newCat.name);
+            else if (newCat.type === 'stream') await createStream(newCat.name);
+            else if (newCat.type === 'exam') await createExam(newCat.name);
+            else if (newCat.type === 'subject') await createSubject(newCat.name, newCat.linkId || undefined, undefined);
+            setNewCat({ ...newCat, name: '' });
+            await loadAll();
+        } catch (_) { alert('Failed to add category'); }
+    };
+
+    const sections = contents.filter(c => c.type === 'section');
+    const folders = contents.filter(c => c.type === 'folder');
+
+    const typeIcons: Record<string, string> = {
+        section: '📁', folder: '📂', subject_core: '📚', subject_additional: '📖',
+        file: '📄', photo: '🖼️', video: '📺', competitive_exam: '🏆', stream: '🧭', quiz: '📝'
+    };
+
+    return (
+        <div className="space-y-6">
+            <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
+                <div>
+                    <h1 className="text-3xl font-black text-slate-900 dark:text-white uppercase tracking-tighter">Content Hub</h1>
+                    <p className="text-slate-900/30 dark:text-white/30 text-sm font-medium mt-1">Manage subjects, folders, and resources for the learning app.</p>
+                </div>
+                <div className="flex gap-2">
+                    <button
+                        onClick={() => setIsManagingCats(!isManagingCats)}
+                        className={`flex items-center gap-2 px-5 py-3 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all ${isManagingCats ? 'bg-amber-500 text-slate-900' : 'bg-slate-900/[0.05] dark:bg-white/[0.05] text-slate-900/60 dark:text-white/60'}`}
+                    >
+                        <Settings size={14} /> Categories
+                    </button>
+                    <button
+                        onClick={() => setIsAdding(!isAdding)}
+                        className="flex items-center gap-2 px-5 py-3 bg-violet-600 hover:bg-violet-700 text-white rounded-xl text-[10px] font-black uppercase tracking-widest shadow-lg active:scale-95 transition-all"
+                    >
+                        <Plus size={14} /> Add Resource
+                    </button>
+                </div>
+            </div>
+
+            {/* Category Management */}
+            <AnimatePresence>
+                {isManagingCats && (
+                    <motion.div
+                        initial={{ opacity: 0, height: 0 }}
+                        animate={{ opacity: 1, height: 'auto' }}
+                        exit={{ opacity: 0, height: 0 }}
+                        className="overflow-hidden"
+                    >
+                        <div className="bg-amber-500/5 border border-amber-500/10 rounded-2xl p-6 mb-6 space-y-6">
+                            <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+                                <div className="space-y-1.5">
+                                    <label className="text-[9px] font-black uppercase tracking-widest text-amber-500/60 ml-1">Type</label>
+                                    <select
+                                        className="w-full bg-amber-500/10 border border-amber-500/20 rounded-xl px-4 py-2.5 text-xs font-bold text-amber-600 outline-none"
+                                        value={newCat.type}
+                                        onChange={e => setNewCat({ ...newCat, type: e.target.value })}
+                                    >
+                                        <option value="class">Class</option>
+                                        <option value="stream">Stream</option>
+                                        <option value="exam">Competitive Exam</option>
+                                        <option value="subject">Learning Subject</option>
+                                    </select>
+                                </div>
+                                <div className="space-y-1.5 md:col-span-2">
+                                    <label className="text-[9px] font-black uppercase tracking-widest text-amber-500/60 ml-1">Name</label>
+                                    <input
+                                        type="text"
+                                        placeholder="e.g. Physics, 12th Arts, JEE"
+                                        className="w-full bg-amber-500/10 border border-amber-500/20 rounded-xl px-4 py-2.5 text-xs font-bold text-amber-600 placeholder:text-amber-500/30 outline-none"
+                                        value={newCat.name}
+                                        onChange={e => setNewCat({ ...newCat, name: e.target.value })}
+                                    />
+                                </div>
+                                <div className="flex items-end">
+                                    <button onClick={handleAddCat} className="w-full py-2.5 bg-amber-500 text-slate-900 rounded-xl font-black uppercase text-[10px] tracking-widest shadow-lg active:scale-95 transition-all">Add Category</button>
+                                </div>
+                            </div>
+
+                            <div className="flex flex-wrap gap-2 pt-2 border-t border-amber-500/10">
+                                {dbClasses.map(c => <div key={c.id} className="px-3 py-1.5 bg-amber-500/10 border border-amber-500/20 rounded-lg text-[10px] font-black uppercase text-amber-600">{c.name}</div>)}
+                                {dbStreams.map(s => <div key={s.id} className="px-3 py-1.5 bg-indigo-500/10 border border-indigo-500/20 rounded-lg text-[10px] font-black uppercase text-indigo-400">{s.name}</div>)}
+                                {dbExams.map(ex => <div key={ex.id} className="px-3 py-1.5 bg-cyan-500/10 border border-cyan-500/20 rounded-lg text-[10px] font-black uppercase text-cyan-400">{ex.name}</div>)}
+                            </div>
+                        </div>
+                    </motion.div>
+                )}
+            </AnimatePresence>
+
+            {/* Add Resource Form */}
+            <AnimatePresence>
+                {isAdding && (
+                    <motion.div
+                        initial={{ opacity: 0, scale: 0.95 }}
+                        animate={{ opacity: 1, scale: 1 }}
+                        exit={{ opacity: 0, scale: 0.95 }}
+                        className="bg-slate-900/[0.03] dark:bg-white/[0.03] border border-violet-500/20 rounded-3xl p-8 mb-8 shadow-2xl shadow-violet-900/10 space-y-6"
+                    >
+                        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                            <div className="space-y-1.5 flex flex-col">
+                                <label className="text-[9px] font-black uppercase tracking-widest text-slate-900/30 dark:text-white/30 ml-2">Resource Title</label>
+                                <input
+                                    type="text" placeholder="e.g. NCERT Physics Ch-1"
+                                    className="w-full bg-slate-900/[0.05] dark:bg-white/[0.05] border border-slate-900/[0.08] dark:border-white/[0.08] rounded-xl px-5 py-3 text-sm font-bold text-slate-900 dark:text-white outline-none focus:border-violet-500/40"
+                                    value={form.title}
+                                    onChange={e => setForm({ ...form, title: e.target.value })}
+                                />
+                            </div>
+                            <div className="space-y-1.5 flex flex-col">
+                                <label className="text-[9px] font-black uppercase tracking-widest text-slate-900/30 dark:text-white/30 ml-2">Content Type</label>
+                                <select
+                                    className="w-full bg-slate-900/[0.05] dark:bg-white/[0.05] border border-slate-900/[0.08] dark:border-white/[0.08] rounded-xl px-5 py-3 text-sm font-bold text-slate-900 dark:text-white outline-none"
+                                    value={form.type}
+                                    onChange={e => setForm({ ...form, type: e.target.value as ContentType })}
+                                >
+                                    <option value="section">Section Grid</option>
+                                    <option value="folder">Subject Folder</option>
+                                    <option value="file">PDF / Document</option>
+                                    <option value="video">YouTube Video</option>
+                                    <option value="quiz">Mock Test / Quiz</option>
+                                    <option value="competitive_exam">Exam Category</option>
+                                    <option value="stream">Stream Category</option>
+                                </select>
+                            </div>
+                            <div className="space-y-1.5 flex flex-col">
+                                <label className="text-[9px] font-black uppercase tracking-widest text-slate-900/30 dark:text-white/30 ml-2">Parent Container</label>
+                                <select
+                                    className="w-full bg-slate-900/[0.05] dark:bg-white/[0.05] border border-slate-900/[0.08] dark:border-white/[0.08] rounded-xl px-5 py-3 text-sm font-bold text-slate-900 dark:text-white outline-none"
+                                    value={form.parent_id}
+                                    onChange={e => setForm({ ...form, parent_id: e.target.value })}
+                                >
+                                    <option value="">Root Level</option>
+                                    {sections.map(s => <option key={s.id} value={s.id}>[Sec] {s.title}</option>)}
+                                    {folders.map(f => <option key={f.id} value={f.id}>[Dir] {f.title}</option>)}
+                                </select>
+                            </div>
+                        </div>
+
+                        {(form.type === 'file' || form.type === 'video' || form.type === 'quiz') && (
+                            <div className="space-y-1.5">
+                                <label className="text-[9px] font-black uppercase tracking-widest text-slate-900/30 dark:text-white/30 ml-2">Resource URL</label>
+                                <input
+                                    type="text" placeholder="https://..."
+                                    className="w-full bg-slate-900/[0.05] dark:bg-white/[0.05] border border-slate-900/[0.08] dark:border-white/[0.08] rounded-xl px-5 py-3 text-sm font-bold text-slate-900 dark:text-white outline-none focus:border-violet-500/40"
+                                    value={form.content_link}
+                                    onChange={e => setForm({ ...form, content_link: e.target.value })}
+                                />
+                            </div>
+                        )}
+
+                        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 pt-4 border-t border-white/5">
+                            <div className="space-y-1.5 flex flex-col">
+                                <label className="text-[9px] font-black uppercase tracking-widest text-slate-900/30 dark:text-white/30 ml-2">Target Class</label>
+                                <select className="w-full bg-slate-900/[0.05] dark:bg-white/[0.05] border border-slate-900/[0.08] dark:border-white/[0.08] rounded-xl px-5 py-3 text-sm font-bold text-slate-900 dark:text-white outline-none" value={form.class_target} onChange={e => setForm({ ...form, class_target: e.target.value })}>
+                                    <option value="">All Classes</option>
+                                    {dbClasses.map(c => <option key={c.id} value={c.name}>{c.name}</option>)}
+                                </select>
+                            </div>
+                            <div className="space-y-1.5 flex flex-col">
+                                <label className="text-[9px] font-black uppercase tracking-widest text-slate-900/30 dark:text-white/30 ml-2">Target Stream</label>
+                                <select className="w-full bg-slate-900/[0.05] dark:bg-white/[0.05] border border-slate-900/[0.08] dark:border-white/[0.08] rounded-xl px-5 py-3 text-sm font-bold text-slate-900 dark:text-white outline-none" value={form.stream_target} onChange={e => setForm({ ...form, stream_target: e.target.value })}>
+                                    <option value="">All Streams</option>
+                                    {dbStreams.map(s => <option key={s.id} value={s.name}>{s.name}</option>)}
+                                </select>
+                            </div>
+                        </div>
+
+                        <div className="flex justify-end gap-3 pt-4">
+                            <button onClick={() => setIsAdding(false)} className="px-8 py-3.5 text-slate-900/40 dark:text-white/40 font-black uppercase text-[10px] tracking-widest transition-all">Cancel</button>
+                            <button onClick={handlePublish} className="px-10 py-3.5 bg-violet-600 text-white rounded-2xl font-black uppercase text-[10px] tracking-widest shadow-xl shadow-violet-900/20 active:scale-95 transition-all">Publish Resource</button>
+                        </div>
+                    </motion.div>
+                )}
+            </AnimatePresence>
+
+            {/* Content List */}
+            <div className="bg-slate-900/[0.02] dark:bg-white/[0.02] border border-slate-900/[0.06] dark:border-white/[0.06] rounded-3xl overflow-hidden">
+                <div className="px-6 py-5 border-b border-slate-900/[0.06] dark:border-white/[0.06] flex items-center justify-between">
+                    <h3 className="text-xs font-black text-slate-900 dark:text-white uppercase tracking-widest">Platform Tree</h3>
+                    <span className="text-[9px] font-bold text-slate-900/15 dark:text-white/15 uppercase tracking-[0.2em]">{contents.length} Items</span>
+                </div>
+                <div className="divide-y divide-white/[0.04] max-h-[600px] overflow-y-auto">
+                    {loading ? (
+                        [...Array(4)].map((_, i) => <div key={i} className="p-6 animate-pulse bg-white/5 m-4 rounded-2xl" />)
+                    ) : contents.map(c => (
+                        <div key={c.id} className="p-6 flex items-center justify-between hover:bg-slate-900/[0.03] dark:hover:bg-white/[0.03] transition-all group">
+                            <div className="flex items-center gap-5 min-w-0">
+                                <div className="w-12 h-12 bg-slate-900/5 dark:bg-white/5 border border-slate-900/10 dark:border-white/10 rounded-2xl flex items-center justify-center text-xl shadow-inner group-hover:scale-110 transition-transform">
+                                    {typeIcons[c.type] || '📦'}
+                                </div>
+                                <div className="min-w-0">
+                                    <h4 className="text-sm font-black text-slate-900 dark:text-white truncate uppercase tracking-tight">{c.title}</h4>
+                                    <div className="flex items-center gap-3 mt-1.5">
+                                        <span className="text-[8px] font-black bg-violet-500/10 text-violet-400 border border-violet-500/20 px-2 py-0.5 rounded uppercase tracking-widest">{c.type}</span>
+                                        {c.class_target && <span className="text-[8px] font-black bg-cyan-500/10 text-cyan-400 border border-cyan-500/20 px-2 py-0.5 rounded uppercase tracking-widest">{c.class_target}</span>}
+                                        {c.parent_id && <span className="text-[8px] font-black text-slate-900/20 dark:text-white/20 uppercase tracking-widest">Nested</span>}
+                                    </div>
+                                </div>
+                            </div>
+                            <button
+                                onClick={() => handleDelete(c.id, c.title)}
+                                className="w-10 h-10 flex items-center justify-center rounded-xl text-slate-900/10 dark:text-white/10 hover:text-red-400 hover:bg-red-400/10 transition-all opacity-0 group-hover:opacity-100"
+                            >
+                                <Trash2 size={16} />
+                            </button>
+                        </div>
+                    ))}
+                    {!loading && contents.length === 0 && (
+                        <div className="py-20 text-center">
+                            <p className="text-slate-900/20 dark:text-white/20 font-black uppercase tracking-widest">No resources published yet</p>
+                        </div>
+                    )}
+                </div>
+            </div>
+        </div>
+    );
+};
+
+// ─────────────────────────────────────────────────────────────────────
 // SETTINGS VIEW
 // ─────────────────────────────────────────────────────────────────────
 const SettingsView: React.FC = () => {
@@ -775,7 +1114,11 @@ const AdminApp: React.FC = () => {
         setStudents([]);
     };
 
-    if (!operator) return <LoginPage onLogin={handleLogin} />;
+    if (!operator) return (
+        <AnimatePresence mode="wait">
+            <LoginPage key="login" onLogin={handleLogin} />
+        </AnimatePresence>
+    );
 
     const roleConf = ROLE_CONFIG[operator.role];
 
@@ -783,16 +1126,35 @@ const AdminApp: React.FC = () => {
         { id: 'dashboard', icon: <LayoutDashboard size={16} />, label: 'Dashboard' },
         { id: 'students', icon: <Users size={16} />, label: 'Students' },
         { id: 'operators', icon: <Shield size={16} />, label: 'Operators' },
+        { id: 'content', icon: <BookOpen size={16} />, label: 'Content Manager' },
         { id: 'settings', icon: <Settings size={16} />, label: 'Settings' },
     ];
 
     return (
         <div className="h-screen w-full bg-slate-50 dark:bg-[#050510] flex text-slate-900 dark:text-white overflow-hidden">
             {/* Mobile overlay */}
-            {sidebarOpen && <div className="fixed inset-0 bg-black/60 z-20 md:hidden" onClick={() => setSidebarOpen(false)} />}
+            <AnimatePresence>
+                {sidebarOpen && (
+                    <motion.div
+                        initial={{ opacity: 0 }}
+                        animate={{ opacity: 1 }}
+                        exit={{ opacity: 0 }}
+                        className="fixed inset-0 bg-black/60 z-40 md:hidden backdrop-blur-sm"
+                        onClick={() => setSidebarOpen(false)}
+                    />
+                )}
+            </AnimatePresence>
 
             {/* Sidebar */}
-            <aside className={`fixed md:relative z-30 md:z-auto h-screen w-72 flex flex-col bg-white dark:bg-[#07070f] border-r border-slate-900/[0.06] dark:border-white/[0.06] transition-transform duration-300${sidebarOpen ? 'translate-x-0' : '-translate-x-full md:translate-x-0'}`}>
+            <motion.aside
+                initial={false}
+                animate={{
+                    x: sidebarOpen ? 0 : (window.innerWidth < 768 ? '-100%' : 0),
+                    opacity: 1
+                }}
+                transition={{ type: 'spring', damping: 30, stiffness: 300 }}
+                className={`fixed md:relative z-50 md:z-auto h-screen w-72 flex flex-col bg-white dark:bg-[#07070f] border-r border-slate-900/[0.06] dark:border-white/[0.06] shadow-2xl md:shadow-none`}
+            >
                 {/* Brand */}
                 <div className="flex items-center gap-3 px-6 py-6 border-b border-slate-900/[0.06] dark:border-white/[0.06]">
                     <img src={LOGO_URL} className="w-9 h-9 rounded-xl border border-slate-900/10 dark:border-white/10" />
@@ -803,12 +1165,25 @@ const AdminApp: React.FC = () => {
                 </div>
 
                 {/* Nav */}
-                <nav className="flex-1 px-3 py-4 space-y-1 overflow-y-auto">
-                    <p className="text-[8px] font-black text-slate-900/15 dark:text-white/15 uppercase tracking-[0.3em] px-3 mb-2">Navigation</p>
-                    {navItems.map(n => (
-                        <SidebarItem key={n.id} icon={n.icon} label={n.label} active={view === n.id}
-                            onClick={() => { setView(n.id); setSidebarOpen(false); }} />
-                    ))}
+                <nav className="flex-1 px-3 py-4 space-y-2 overflow-y-auto">
+                    <p className="text-[8px] font-black text-slate-900/15 dark:text-white/15 uppercase tracking-[0.3em] px-3 mb-4">Command Deck</p>
+                    <AnimatePresence>
+                        {navItems.map((n, i) => (
+                            <motion.div
+                                key={n.id}
+                                initial={{ opacity: 0, x: -10 }}
+                                animate={{ opacity: 1, x: 0 }}
+                                transition={{ delay: i * 0.05 }}
+                            >
+                                <SidebarItem
+                                    icon={n.icon}
+                                    label={n.label}
+                                    active={view === n.id}
+                                    onClick={() => { setView(n.id); setSidebarOpen(false); }}
+                                />
+                            </motion.div>
+                        ))}
+                    </AnimatePresence>
                 </nav>
 
                 {/* Operator Info */}
@@ -839,7 +1214,7 @@ const AdminApp: React.FC = () => {
                         <LogOut size={14} /> Sign Out
                     </button>
                 </div>
-            </aside>
+            </motion.aside>
 
             {/* Main Content */}
             <div className="flex-1 flex flex-col h-full overflow-hidden relative">
@@ -859,11 +1234,23 @@ const AdminApp: React.FC = () => {
                 {/* Ambient glow */}
                 <div className="absolute top-0 right-0 w-[500px] h-[300px] bg-violet-900/10 blur-[120px] rounded-full pointer-events-none" />
 
-                <main className="flex-1 overflow-y-auto p-4 md:p-10 lg:p-12 relative w-full">
-                    {view === 'dashboard' && <DashboardView stats={stats} operator={operator} onRefresh={loadData} loading={loading} />}
-                    {view === 'students' && <StudentsView students={students} loading={loading} />}
-                    {view === 'operators' && <OperatorsView currentOperator={operator} />}
-                    {view === 'settings' && <SettingsView />}
+                <main className="flex-1 overflow-y-auto p-4 md:p-10 lg:p-12 relative w-full h-full">
+                    <AnimatePresence mode="wait">
+                        <motion.div
+                            key={view}
+                            initial={{ opacity: 0, y: 10 }}
+                            animate={{ opacity: 1, y: 0 }}
+                            exit={{ opacity: 0, y: -10 }}
+                            transition={{ duration: 0.3, ease: [0.4, 0, 0.2, 1] }}
+                            className="h-full"
+                        >
+                            {view === 'dashboard' && <DashboardView stats={stats} operator={operator} onRefresh={loadData} loading={loading} />}
+                            {view === 'students' && <StudentsView students={students} loading={loading} />}
+                            {view === 'operators' && <OperatorsView currentOperator={operator} />}
+                            {view === 'content' && <ContentView />}
+                            {view === 'settings' && <SettingsView />}
+                        </motion.div>
+                    </AnimatePresence>
                 </main>
             </div>
         </div>
