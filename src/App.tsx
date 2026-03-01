@@ -5,7 +5,7 @@ import {
     ShieldAlert, Calendar, Clock, TrendingUp, Activity,
     Shield, Plus, Trash2, Eye, EyeOff, ChevronRight,
     Zap, BarChart3, AlertTriangle, CheckCircle2, XCircle,
-    RefreshCw, MessageSquare, Crown, Star, Lock, Sun, Moon, BookOpen
+    RefreshCw, MessageSquare, Crown, Star, Lock, Sun, Moon, BookOpen, Download
 } from 'lucide-react';
 import {
     fetchAdminStats, fetchAllStudents, fetchMaintenanceSettings,
@@ -643,6 +643,31 @@ const ContentView: React.FC = () => {
     const [path, setPath] = useState<Folder[]>([]);
     const [folders, setFolders] = useState<Folder[]>([]);
     const [materials, setMaterials] = useState<Material[]>([]);
+    const [downloading, setDownloading] = useState<string | null>(null);
+
+    const handleDownload = async (url: string, title: string) => {
+        if (downloading) return;
+        setDownloading(url);
+        try {
+            // Google Drive direct download link replacement
+            let downloadUrl = url;
+            if (url.includes('drive.google.com')) {
+                downloadUrl = url.replace(/\/preview$/, '/view').replace(/\/view(\?.*)?$/, '/view?export=download');
+            }
+
+            const link = document.createElement('a');
+            link.href = downloadUrl;
+            link.download = `${title}.pdf`;
+            link.target = '_blank';
+            document.body.appendChild(link);
+            link.click();
+            document.body.removeChild(link);
+        } catch (e) {
+            console.error('Download failed', e);
+        } finally {
+            setDownloading(null);
+        }
+    };
     const [loading, setLoading] = useState(true);
     const [isAdding, setIsAdding] = useState(false);
 
@@ -951,6 +976,14 @@ const ContentView: React.FC = () => {
                                         </div>
                                         <div className="flex items-center gap-2">
                                             <a href={m.url} target="_blank" rel="noreferrer" className="p-2 text-slate-300 hover:text-violet-500 transition-colors"><Eye size={16} /></a>
+                                            {m.type === 'pdf' && (
+                                                <button
+                                                    onClick={() => handleDownload(m.url, m.title)}
+                                                    className={`p-2 transition-colors ${downloading === m.url ? 'text-violet-500 animate-bounce' : 'text-slate-300 hover:text-cyan-500'}`}
+                                                >
+                                                    <Download size={16} />
+                                                </button>
+                                            )}
                                             <button onClick={() => deleteMaterial(m.id).then(() => loadFolderContent(currentSubject!.id, path[path.length - 1]?.id || null))} className="p-2 text-slate-300 hover:text-red-400 transition-colors"><Trash2 size={16} /></button>
                                         </div>
                                     </div>
