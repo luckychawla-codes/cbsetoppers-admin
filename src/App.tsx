@@ -888,7 +888,7 @@ const ContentView: React.FC = () => {
                     </div>
                 </div>
                 {view === 'subjects' ? (
-                    <button onClick={() => { setIsEditing(false); setEditingId(null); setSubForm({ category: 'Core', target_class: 'XII', target_stream: 'PCM', target_classes: ['XII'], target_streams: ['PCM'], target_exams: [] }); setIsAdding(true); }} className="flex items-center gap-2 px-6 py-3 bg-violet-600 text-white rounded-xl text-[10px] font-black uppercase tracking-widest shadow-lg active:scale-95 transition-all">
+                    <button onClick={() => { setIsEditing(false); setEditingId(null); setSubForm({ name: '', code: '', category: 'Core', target_class: 'XII', target_stream: 'PCM', target_classes: ['XII'], target_streams: ['PCM'], target_exams: [] }); setIsAdding(true); }} className="flex items-center gap-2 px-6 py-3 bg-violet-600 text-white rounded-xl text-[10px] font-black uppercase tracking-widest shadow-lg active:scale-95 transition-all">
                         <Plus size={14} /> New Subject
                     </button>
                 ) : (
