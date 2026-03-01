@@ -878,6 +878,11 @@ const ContentView: React.FC = () => {
         loadFolderContent(s.id, null);
     };
 
+    const drillDownFolder = (f: Folder) => {
+        setPath([...path, f]);
+        loadFolderContent(currentSubject!.id, f.id);
+    };
+
     const navigateTo = (f: Folder, idx: number) => {
         const newPath = path.slice(0, idx + 1);
         setPath(newPath);
@@ -1166,7 +1171,7 @@ const ContentView: React.FC = () => {
                             ))
                         ) : (
                             <div className="divide-y divide-slate-900/[0.04] dark:divide-white/[0.04]">
-                                {childFolders.map((f, i) => (
+                                {folders.map((f, i) => (
                                     <div key={f.id} onClick={() => drillDownFolder(f)} className="p-6 flex items-center justify-between hover:bg-slate-900/[0.03] dark:hover:bg-white/[0.03] transition-all cursor-pointer group">
                                         <div className="flex items-center gap-4">
                                             <div className="w-10 h-10 bg-violet-600/10 rounded-xl flex items-center justify-center text-violet-600 transition-transform group-hover:scale-110">📂</div>
@@ -1206,7 +1211,7 @@ const ContentView: React.FC = () => {
                                         </div>
                                     </div>
                                 ))}
-                                {childFolders.length === 0 && materials.length === 0 && (
+                                {folders.length === 0 && materials.length === 0 && (
                                     <div className="py-20 text-center text-slate-400 text-xs font-bold">This node is empty.</div>
                                 )}
                             </div>
