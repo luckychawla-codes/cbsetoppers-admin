@@ -89,7 +89,8 @@ export interface Folder {
 
 export interface Material {
     id: string;
-    folder_id: string;
+    folder_id?: string | null;
+    subject_id: string;
     title: string;
     type: MaterialType;
     url: string;
@@ -137,8 +138,12 @@ export const deleteFolder = async (id: string) => {
 };
 
 // MATERIALS
-export const fetchMaterials = async (folderId: string): Promise<Material[]> => {
-    const { data, error } = await supabase.from('materials').select('*').eq('folder_id', folderId).order('order_index');
+export const fetchMaterials = async (subjectId: string, folderId: string | null = null): Promise<Material[]> => {
+    let query = supabase.from('materials').select('*').eq('subject_id', subjectId);
+    if (folderId) query = query.eq('folder_id', folderId);
+    else query = query.is('folder_id', null);
+
+    const { data, error } = await query.order('order_index');
     if (error) throw error;
     return data || [];
 };

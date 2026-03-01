@@ -669,17 +669,10 @@ const ContentView: React.FC = () => {
         try {
             const [f, m] = await Promise.all([
                 fetchFolders(subjectId, parentId),
-                fetchMaterials(parentId || 'dummy') // If parentId is null, materials are usually not at root, but per rules we filter
+                fetchMaterials(subjectId, parentId)
             ]);
-            // Material fetch logic: in this strict design, materials are inside folders.
-            // If parentId is null, we might show root folders of the subject.
             setFolders(f);
-            if (parentId) {
-                const matData = await fetchMaterials(parentId);
-                setMaterials(matData);
-            } else {
-                setMaterials([]);
-            }
+            setMaterials(m);
         } catch (_) { }
         setLoading(false);
     }, []);
@@ -722,16 +715,17 @@ const ContentView: React.FC = () => {
 
     const handleAddMaterial = async () => {
         const parentFolder = path[path.length - 1];
-        if (!parentFolder || !materialForm.title || !materialForm.url) return alert('Fill all fields');
+        if (!currentSubject || !materialForm.title || !materialForm.url) return alert('Fill all fields');
         try {
             await createMaterial({
                 ...materialForm,
-                folder_id: parentFolder.id,
+                subject_id: currentSubject.id,
+                folder_id: parentFolder?.id || null,
                 order_index: materials.length
             });
             setMaterialForm({ type: 'pdf', title: '', url: '' });
             setIsAdding(false);
-            loadFolderContent(currentSubject!.id, parentFolder.id);
+            loadFolderContent(currentSubject.id, parentFolder?.id || null);
         } catch (_) { alert('Error'); }
     };
 
