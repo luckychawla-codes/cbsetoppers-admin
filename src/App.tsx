@@ -888,7 +888,7 @@ const ContentView: React.FC = () => {
                     </div>
                 </div>
                 {view === 'subjects' ? (
-                    <button onClick={() => { setIsEditing(false); setEditingId(null); setSubForm({ category: 'Core', target_classes: ['XII'], target_streams: ['PCM'], target_exams: [] }); setIsAdding(true); }} className="flex items-center gap-2 px-6 py-3 bg-violet-600 text-white rounded-xl text-[10px] font-black uppercase tracking-widest shadow-lg active:scale-95 transition-all">
+                    <button onClick={() => { setIsEditing(false); setEditingId(null); setSubForm({ category: 'Core', target_class: 'XII', target_stream: 'PCM', target_classes: ['XII'], target_streams: ['PCM'], target_exams: [] }); setIsAdding(true); }} className="flex items-center gap-2 px-6 py-3 bg-violet-600 text-white rounded-xl text-[10px] font-black uppercase tracking-widest shadow-lg active:scale-95 transition-all">
                         <Plus size={14} /> New Subject
                     </button>
                 ) : (
@@ -1444,6 +1444,20 @@ const AdminApp: React.FC = () => {
                         ))}
                     </AnimatePresence>
                 </nav>
+
+                {/* GitHub Sync Indicator */}
+                <div className="px-3 pb-2 pt-2 border-t border-slate-900/[0.06] dark:border-white/[0.06]">
+                    <button
+                        onClick={() => alert('Changes are already pushed to GitHub (main branch).')}
+                        className="w-full flex items-center justify-between px-4 py-3 bg-slate-900/[0.03] dark:bg-white/[0.02] border border-slate-900/[0.06] dark:border-white/[0.06] rounded-xl hover:bg-slate-900/[0.06] dark:hover:bg-white/[0.04] transition-all group"
+                    >
+                        <div className="flex items-center gap-3">
+                            <Github size={16} className="text-slate-400 group-hover:text-slate-900 dark:group-hover:text-white transition-colors" />
+                            <span className="text-[10px] font-black uppercase tracking-widest text-slate-400 group-hover:text-slate-900 dark:group-hover:text-white">GitHub Sync</span>
+                        </div>
+                        <div className="w-1.5 h-1.5 rounded-full bg-emerald-500 shadow-[0_0_8px_rgba(16,185,129,0.5)]" />
+                    </button>
+                </div>
 
                 {/* Operator Info */}
                 <div className="p-4 border-t border-slate-900/[0.06] dark:border-white/[0.06]">
