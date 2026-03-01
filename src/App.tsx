@@ -1117,6 +1117,7 @@ const ContentView: React.FC = () => {
                                                 <label className="text-[9px] font-black uppercase text-slate-400 ml-1">{addType === 'video' ? 'YouTube URL' : 'File Direct URL'}</label>
                                                 <input type="text" className="w-full bg-slate-50 dark:bg-white/5 border border-slate-100 dark:border-white/10 rounded-xl px-4 py-3 text-xs font-bold" value={materialForm.url} onChange={e => setMaterialForm({ ...materialForm, url: e.target.value })} placeholder="https://..." />
                                             </div>
+                                            <button onClick={handleAddMaterial} className="w-full py-4 bg-violet-600 text-white rounded-2xl font-black uppercase text-xs tracking-widest shadow-xl active:scale-95 transition-all">{isEditing ? 'Save Changes' : 'Publish Content'}</button>
                                         </>
                                     )}
                                 </div>
