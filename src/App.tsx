@@ -12,11 +12,10 @@ import {
     updateMaintenanceSettings, supabase, signInOperator, signOutOperator,
     fetchAllOperators, createOperator, deleteOperator,
     Operator, OperatorRole,
-    fetchDashboardContent, createDashboardContent, deleteDashboardContent,
-    fetchClasses, fetchStreams, fetchExams, fetchSubjects,
-    createClass, createStream, createExam, createSubject,
-    deleteClass, deleteStream, deleteExam, deleteSubject,
-    DashboardContent, ContentType
+    fetchSubjects, createSubject, deleteSubject,
+    fetchFolders, createFolder, deleteFolder,
+    fetchMaterials, createMaterial, deleteMaterial,
+    Subject, Folder, Material, SubjectCategory, MaterialType
 } from './services/supabase';
 
 type View = 'dashboard' | 'students' | 'content' | 'settings' | 'operators';
@@ -634,299 +633,320 @@ const OperatorsView: React.FC<{ currentOperator: Operator }> = ({ currentOperato
 // ─────────────────────────────────────────────────────────────────────
 // CONTENT MANAGER VIEW (NATIVE)
 // ─────────────────────────────────────────────────────────────────────
+// ─────────────────────────────────────────────────────────────────────
+// CONTENT MANAGER VIEW (STRICT REBUILD)
+// ─────────────────────────────────────────────────────────────────────
 const ContentView: React.FC = () => {
-    const [contents, setContents] = useState<DashboardContent[]>([]);
+    const [view, setView] = useState<'subjects' | 'folders'>('subjects');
+    const [subjects, setSubjects] = useState<Subject[]>([]);
+    const [currentSubject, setCurrentSubject] = useState<Subject | null>(null);
+    const [path, setPath] = useState<Folder[]>([]);
+    const [folders, setFolders] = useState<Folder[]>([]);
+    const [materials, setMaterials] = useState<Material[]>([]);
     const [loading, setLoading] = useState(true);
     const [isAdding, setIsAdding] = useState(false);
-    const [isManagingCats, setIsManagingCats] = useState(false);
 
-    // Meta Categories
-    const [dbClasses, setDbClasses] = useState<any[]>([]);
-    const [dbStreams, setDbStreams] = useState<any[]>([]);
-    const [dbExams, setDbExams] = useState<any[]>([]);
-    const [dbSubjects, setDbSubjects] = useState<any[]>([]);
+    // Form states
+    const [subForm, setSubForm] = useState<Partial<Subject>>({ category: 'Core', target_class: 'XII', target_stream: 'PCM' });
+    const [folderForm, setFolderForm] = useState({ name: '' });
+    const [materialForm, setMaterialForm] = useState<Partial<Material>>({ type: 'pdf', title: '', url: '' });
 
-    // Form State
-    const [form, setForm] = useState<Partial<DashboardContent>>({
-        title: '',
-        type: 'section',
-        content_link: '',
-        parent_id: '',
-        class_target: '',
-        stream_target: '',
-        exam_target: ''
-    });
+    const classes = ['IX', 'X', 'XI', 'XII', 'XII+'];
+    const streams = ['PCB', 'PCM', 'PCBM'];
 
-    // Category Forms
-    const [newCat, setNewCat] = useState({ type: 'class', name: '', linkId: '' });
-
-    const loadAll = useCallback(async () => {
+    const loadSubjects = useCallback(async () => {
         setLoading(true);
         try {
-            const [c, cls, st, ex, sub] = await Promise.all([
-                fetchDashboardContent(),
-                fetchClasses(),
-                fetchStreams(),
-                fetchExams(),
-                fetchSubjects()
-            ]);
-            setContents(c);
-            setDbClasses(cls);
-            setDbStreams(st);
-            setDbExams(ex);
-            setDbSubjects(sub);
+            const data = await fetchSubjects();
+            setSubjects(data);
         } catch (_) { }
         setLoading(false);
     }, []);
 
-    useEffect(() => { loadAll(); }, [loadAll]);
-
-    const handlePublish = async () => {
-        if (!form.title) return;
+    const loadFolderContent = useCallback(async (subjectId: string, parentId: string | null) => {
+        setLoading(true);
         try {
-            const dataToPublish = { ...form, order_index: contents.length };
-            // Clean up empty strings for UUID/Target fields to avoid DB errors
-            if (!dataToPublish.parent_id) delete dataToPublish.parent_id;
-            if (!dataToPublish.class_target) delete dataToPublish.class_target;
-            if (!dataToPublish.stream_target) delete dataToPublish.stream_target;
-            if (!dataToPublish.exam_target) delete dataToPublish.exam_target;
+            const [f, m] = await Promise.all([
+                fetchFolders(subjectId, parentId),
+                fetchMaterials(parentId || 'dummy') // If parentId is null, materials are usually not at root, but per rules we filter
+            ]);
+            // Material fetch logic: in this strict design, materials are inside folders.
+            // If parentId is null, we might show root folders of the subject.
+            setFolders(f);
+            if (parentId) {
+                const matData = await fetchMaterials(parentId);
+                setMaterials(matData);
+            } else {
+                setMaterials([]);
+            }
+        } catch (_) { }
+        setLoading(false);
+    }, []);
 
-            await createDashboardContent(dataToPublish);
-            setForm({ title: '', type: 'section', content_link: '', parent_id: '', class_target: '', stream_target: '', exam_target: '' });
-            setIsAdding(false);
-            await loadAll();
-        } catch (e) {
-            console.error('Publish error:', e);
-            alert('Failed to publish. Ensure you have the correct permissions and the database is online.');
+    useEffect(() => { loadSubjects(); }, [loadSubjects]);
+
+    const handleAddSubject = async () => {
+        if (!subForm.name || !subForm.code) return alert('Name and Code required');
+
+        // Strict Validation
+        if (subForm.category === 'Core') {
+            if (!['XI', 'XII'].includes(subForm.target_class!)) return alert('Core subjects only allowed for XI and XII');
+            if (!subForm.target_stream) return alert('Stream is mandatory for Core subjects');
+        } else {
+            // Additional
+            if (subForm.target_stream) return alert('Stream must NOT be selected for Additional subjects');
         }
-    };
 
-    const handleDelete = async (id: string, title: string) => {
-        if (!confirm(`Permanently delete "${title}"?`)) return;
         try {
-            await deleteDashboardContent(id);
-            await loadAll();
-        } catch (_) { alert('Delete failed'); }
+            await createSubject(subForm);
+            setIsAdding(false);
+            loadSubjects();
+        } catch (e: any) { alert(e.message || 'Error creating subject'); }
     };
 
-    const handleAddCat = async () => {
-        if (!newCat.name) return;
+    const handleAddFolder = async () => {
+        if (!folderForm.name || !currentSubject) return;
         try {
-            if (newCat.type === 'class') await createClass(newCat.name);
-            else if (newCat.type === 'stream') await createStream(newCat.name);
-            else if (newCat.type === 'exam') await createExam(newCat.name);
-            else if (newCat.type === 'subject') await createSubject(newCat.name, newCat.linkId || undefined, undefined);
-            setNewCat({ ...newCat, name: '' });
-            await loadAll();
-        } catch (_) { alert('Failed to add category'); }
+            await createFolder({
+                subject_id: currentSubject.id,
+                parent_id: path[path.length - 1]?.id || null,
+                name: folderForm.name,
+                order_index: folders.length
+            });
+            setFolderForm({ name: '' });
+            setIsAdding(false);
+            loadFolderContent(currentSubject.id, path[path.length - 1]?.id || null);
+        } catch (_) { alert('Error'); }
     };
 
-    const sections = contents.filter(c => c.type === 'section');
-    const folders = contents.filter(c => c.type === 'folder' || c.type === 'subject_core' || c.type === 'subject_additional' || c.type === 'competitive_exam' || c.type === 'stream');
+    const handleAddMaterial = async () => {
+        const parentFolder = path[path.length - 1];
+        if (!parentFolder || !materialForm.title || !materialForm.url) return alert('Fill all fields');
+        try {
+            await createMaterial({
+                ...materialForm,
+                folder_id: parentFolder.id,
+                order_index: materials.length
+            });
+            setMaterialForm({ type: 'pdf', title: '', url: '' });
+            setIsAdding(false);
+            loadFolderContent(currentSubject!.id, parentFolder.id);
+        } catch (_) { alert('Error'); }
+    };
 
-    const typeIcons: Record<string, string> = {
-        section: '📁', folder: '📂', subject_core: '📚', subject_additional: '📖',
-        file: '📄', photo: '🖼️', video: '📺', competitive_exam: '🏆', stream: '🧭', quiz: '📝'
+    const drillDownSubject = (s: Subject) => {
+        setCurrentSubject(s);
+        setPath([]);
+        setView('folders');
+        loadFolderContent(s.id, null);
+    };
+
+    const navigateTo = (f: Folder, idx: number) => {
+        const newPath = path.slice(0, idx + 1);
+        setPath(newPath);
+        loadFolderContent(currentSubject!.id, f.id);
+    };
+
+    const navigateRoot = () => {
+        setPath([]);
+        loadFolderContent(currentSubject!.id, null);
     };
 
     return (
         <div className="space-y-6">
-            <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
+            {/* Header */}
+            <div className="flex items-center justify-between">
                 <div>
-                    <h1 className="text-3xl font-black text-slate-900 dark:text-white uppercase tracking-tighter">Content Hub</h1>
-                    <p className="text-slate-900/30 dark:text-white/30 text-sm font-medium mt-1">Manage subjects, folders, and resources for the learning app.</p>
+                    <h1 className="text-3xl font-black text-slate-900 dark:text-white uppercase tracking-tighter">
+                        {view === 'subjects' ? 'Subjects Portal' : currentSubject?.name}
+                    </h1>
+                    <div className="flex items-center gap-2 mt-1">
+                        {view === 'folders' && (
+                            <button onClick={() => { setView('subjects'); setCurrentSubject(null); }} className="text-[10px] font-black text-violet-500 uppercase flex items-center gap-1 hover:underline">
+                                <ChevronRight size={12} className="rotate-180" /> Subjects
+                            </button>
+                        )}
+                        <p className="text-slate-900/30 dark:text-white/30 text-sm font-medium">
+                            {view === 'subjects' ? 'Define core and additional project structures.' : 'Manage folders and materials hierarchy.'}
+                        </p>
+                    </div>
                 </div>
-                <div className="flex gap-2">
-                    <button
-                        onClick={() => setIsManagingCats(!isManagingCats)}
-                        className={`flex items-center gap-2 px-5 py-3 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all ${isManagingCats ? 'bg-amber-500 text-slate-900' : 'bg-slate-900/[0.05] dark:bg-white/[0.05] text-slate-900/60 dark:text-white/60'}`}
-                    >
-                        <Settings size={14} /> Categories
+                {view === 'subjects' ? (
+                    <button onClick={() => setIsAdding(true)} className="flex items-center gap-2 px-6 py-3 bg-violet-600 text-white rounded-xl text-[10px] font-black uppercase tracking-widest shadow-lg active:scale-95 transition-all">
+                        <Plus size={14} /> New Subject
                     </button>
-                    <button
-                        onClick={() => setIsAdding(!isAdding)}
-                        className="flex items-center gap-2 px-5 py-3 bg-violet-600 hover:bg-violet-700 text-white rounded-xl text-[10px] font-black uppercase tracking-widest shadow-lg active:scale-95 transition-all"
-                    >
-                        <Plus size={14} /> Add Resource
-                    </button>
-                </div>
+                ) : path.length > 0 && (
+                    <div className="flex gap-2">
+                        <button onClick={() => { setMaterialForm({ ...materialForm, type: 'pdf' }); setIsAdding(true); }} className="px-4 py-2 bg-slate-900/5 dark:bg-white/5 text-[10px] font-black uppercase rounded-lg border border-slate-900/10 dark:border-white/10 hover:bg-violet-500/10 hover:text-violet-500 transition-all">
+                            Add Content
+                        </button>
+                        <button onClick={() => { setFolderForm({ name: '' }); setIsAdding(true); }} className="px-4 py-2 bg-violet-600 text-white text-[10px] font-black uppercase rounded-lg shadow-md active:scale-95 transition-all">
+                            Create Folder
+                        </button>
+                    </div>
+                )}
             </div>
 
-            {/* Category Management */}
-            <AnimatePresence>
-                {isManagingCats && (
-                    <motion.div
-                        initial={{ opacity: 0, height: 0 }}
-                        animate={{ opacity: 1, height: 'auto' }}
-                        exit={{ opacity: 0, height: 0 }}
-                        className="overflow-hidden"
-                    >
-                        <div className="bg-amber-500/5 border border-amber-500/10 rounded-2xl p-6 mb-6 space-y-6">
-                            <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-                                <div className="space-y-1.5">
-                                    <label className="text-[9px] font-black uppercase tracking-widest text-amber-500/60 ml-1">Type</label>
-                                    <select
-                                        className="w-full bg-amber-500/10 border border-amber-500/20 rounded-xl px-4 py-2.5 text-xs font-bold text-amber-600 outline-none"
-                                        value={newCat.type}
-                                        onChange={e => setNewCat({ ...newCat, type: e.target.value })}
-                                    >
-                                        <option value="class">Class</option>
-                                        <option value="stream">Stream</option>
-                                        <option value="exam">Competitive Exam</option>
-                                        <option value="subject">Learning Subject</option>
-                                    </select>
-                                </div>
-                                <div className="space-y-1.5 md:col-span-2">
-                                    <label className="text-[9px] font-black uppercase tracking-widest text-amber-500/60 ml-1">Name</label>
-                                    <input
-                                        type="text"
-                                        placeholder="e.g. Physics, 12th Arts, JEE"
-                                        className="w-full bg-amber-500/10 border border-amber-500/20 rounded-xl px-4 py-2.5 text-xs font-bold text-amber-600 placeholder:text-amber-500/30 outline-none"
-                                        value={newCat.name}
-                                        onChange={e => setNewCat({ ...newCat, name: e.target.value })}
-                                    />
-                                </div>
-                                <div className="flex items-end">
-                                    <button onClick={handleAddCat} className="w-full py-2.5 bg-amber-500 text-slate-900 rounded-xl font-black uppercase text-[10px] tracking-widest shadow-lg active:scale-95 transition-all">Add Category</button>
-                                </div>
-                            </div>
+            {/* Path / Breadcrumbs for Folders */}
+            {view === 'folders' && (
+                <div className="flex items-center gap-2 px-4 py-2 bg-slate-900/[0.03] dark:bg-white/[0.03] rounded-xl overflow-x-auto no-scrollbar">
+                    <button onClick={navigateRoot} className={`text-[10px] font-black uppercase tracking-widest whitespace-nowrap ${path.length === 0 ? 'text-violet-500' : 'text-slate-400'}`}>Roots</button>
+                    {path.map((f, i) => (
+                        <React.Fragment key={f.id}>
+                            <ChevronRight size={10} className="text-slate-300 shrink-0" />
+                            <button onClick={() => navigateTo(f, i)} className={`text-[10px] font-black uppercase tracking-widest whitespace-nowrap ${i === path.length - 1 ? 'text-violet-500' : 'text-slate-400'}`}>{f.name}</button>
+                        </React.Fragment>
+                    ))}
+                </div>
+            )}
 
-                            <div className="flex flex-wrap gap-2 pt-2 border-t border-amber-500/10">
-                                {dbClasses.map(c => <div key={c.id} className="px-3 py-1.5 bg-amber-500/10 border border-amber-500/20 rounded-lg text-[10px] font-black uppercase text-amber-600">{c.name}</div>)}
-                                {dbStreams.map(s => <div key={s.id} className="px-3 py-1.5 bg-indigo-500/10 border border-indigo-500/20 rounded-lg text-[10px] font-black uppercase text-indigo-400">{s.name}</div>)}
-                                {dbExams.map(ex => <div key={ex.id} className="px-3 py-1.5 bg-cyan-500/10 border border-cyan-500/20 rounded-lg text-[10px] font-black uppercase text-cyan-400">{ex.name}</div>)}
-                            </div>
-                        </div>
-                    </motion.div>
-                )}
-            </AnimatePresence>
-
-            {/* Add Resource Form */}
+            {/* Forms Overlay */}
             <AnimatePresence>
                 {isAdding && (
-                    <motion.div
-                        initial={{ opacity: 0, scale: 0.95 }}
-                        animate={{ opacity: 1, scale: 1 }}
-                        exit={{ opacity: 0, scale: 0.95 }}
-                        className="bg-slate-900/[0.03] dark:bg-white/[0.03] border border-violet-500/20 rounded-3xl p-8 mb-8 shadow-2xl shadow-violet-900/10 space-y-6"
-                    >
-                        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                            <div className="space-y-1.5 flex flex-col">
-                                <label className="text-[9px] font-black uppercase tracking-widest text-slate-900/30 dark:text-white/30 ml-2">Resource Title</label>
-                                <input
-                                    type="text" placeholder="e.g. NCERT Physics Ch-1"
-                                    className="w-full bg-slate-900/[0.05] dark:bg-white/[0.05] border border-slate-900/[0.08] dark:border-white/[0.08] rounded-xl px-5 py-3 text-sm font-bold text-slate-900 dark:text-white outline-none focus:border-violet-500/40"
-                                    value={form.title}
-                                    onChange={e => setForm({ ...form, title: e.target.value })}
-                                />
-                            </div>
-                            <div className="space-y-1.5 flex flex-col">
-                                <label className="text-[9px] font-black uppercase tracking-widest text-slate-900/30 dark:text-white/30 ml-2">Content Type</label>
-                                <select
-                                    className="w-full bg-slate-900/[0.05] dark:bg-white/[0.05] border border-slate-900/[0.08] dark:border-white/[0.08] rounded-xl px-5 py-3 text-sm font-bold text-slate-900 dark:text-white outline-none"
-                                    value={form.type}
-                                    onChange={e => setForm({ ...form, type: e.target.value as ContentType })}
-                                >
-                                    <option value="section">Section Grid</option>
-                                    <option value="subject_core">Core Subject Folder</option>
-                                    <option value="subject_additional">Additional Subject Folder</option>
-                                    <option value="folder">General Sub-Folder</option>
-                                    <option value="file">PDF / Document</option>
-                                    <option value="video">YouTube Video</option>
-                                    <option value="quiz">Mock Test / Quiz</option>
-                                    <option value="competitive_exam">Exam Category</option>
-                                    <option value="stream">Stream Category</option>
-                                </select>
-                            </div>
-                            <div className="space-y-1.5 flex flex-col">
-                                <label className="text-[9px] font-black uppercase tracking-widest text-slate-900/30 dark:text-white/30 ml-2">Parent Container</label>
-                                <select
-                                    className="w-full bg-slate-900/[0.05] dark:bg-white/[0.05] border border-slate-900/[0.08] dark:border-white/[0.08] rounded-xl px-5 py-3 text-sm font-bold text-slate-900 dark:text-white outline-none"
-                                    value={form.parent_id}
-                                    onChange={e => setForm({ ...form, parent_id: e.target.value })}
-                                >
-                                    <option value="">Root Level</option>
-                                    {sections.map(s => <option key={s.id} value={s.id}>[Sec] {s.title}</option>)}
-                                    {folders.map(f => <option key={f.id} value={f.id}>[Dir] {f.title}</option>)}
-                                </select>
-                            </div>
-                        </div>
+                    <div className="fixed inset-0 z-[100] flex items-center justify-center p-6 backdrop-blur-md bg-slate-900/40">
+                        <motion.div initial={{ scale: 0.9, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} exit={{ scale: 0.9, opacity: 0 }} className="bg-white dark:bg-[#0c0c14] border border-white/10 rounded-3xl p-8 max-w-lg w-full shadow-2xl space-y-6">
+                            <h2 className="text-xl font-black uppercase tracking-tighter text-slate-900 dark:text-white shadow-sm">
+                                {view === 'subjects' ? 'Direct Subject Creation' : 'Structure / Content Node'}
+                            </h2>
 
-                        {(form.type === 'file' || form.type === 'video' || form.type === 'quiz') && (
-                            <div className="space-y-1.5">
-                                <label className="text-[9px] font-black uppercase tracking-widest text-slate-900/30 dark:text-white/30 ml-2">Resource URL</label>
-                                <input
-                                    type="text" placeholder="https://..."
-                                    className="w-full bg-slate-900/[0.05] dark:bg-white/[0.05] border border-slate-900/[0.08] dark:border-white/[0.08] rounded-xl px-5 py-3 text-sm font-bold text-slate-900 dark:text-white outline-none focus:border-violet-500/40"
-                                    value={form.content_link}
-                                    onChange={e => setForm({ ...form, content_link: e.target.value })}
-                                />
-                            </div>
-                        )}
+                            {view === 'subjects' ? (
+                                <div className="space-y-4">
+                                    <div className="grid grid-cols-2 gap-4">
+                                        <div className="space-y-1">
+                                            <label className="text-[9px] font-black uppercase text-slate-400 ml-1">Type</label>
+                                            <select className="w-full bg-slate-50 dark:bg-white/5 border border-slate-100 dark:border-white/10 rounded-xl px-4 py-3 text-xs font-bold" value={subForm.category} onChange={e => setSubForm({ ...subForm, category: e.target.value as SubjectCategory })}>
+                                                <option value="Core">Core Subject</option>
+                                                <option value="Additional">Additional Subject</option>
+                                            </select>
+                                        </div>
+                                        <div className="space-y-1">
+                                            <label className="text-[9px] font-black uppercase text-slate-400 ml-1">Code</label>
+                                            <input type="text" className="w-full bg-slate-50 dark:bg-white/5 border border-slate-100 dark:border-white/10 rounded-xl px-4 py-3 text-xs font-bold" value={subForm.code} onChange={e => setSubForm({ ...subForm, code: e.target.value })} placeholder="e.g. PHY-042" />
+                                        </div>
+                                    </div>
+                                    <div className="space-y-1">
+                                        <label className="text-[9px] font-black uppercase text-slate-400 ml-1">Name</label>
+                                        <input type="text" className="w-full bg-slate-50 dark:bg-white/5 border border-slate-100 dark:border-white/10 rounded-xl px-4 py-3 text-xs font-bold" value={subForm.name} onChange={e => setSubForm({ ...subForm, name: e.target.value })} placeholder="e.g. Physics" />
+                                    </div>
+                                    <div className="grid grid-cols-2 gap-4">
+                                        <div className="space-y-1">
+                                            <label className="text-[9px] font-black uppercase text-slate-400 ml-1">Class</label>
+                                            <select className="w-full bg-slate-50 dark:bg-white/5 border border-slate-100 dark:border-white/10 rounded-xl px-4 py-3 text-xs font-bold" value={subForm.target_class} onChange={e => setSubForm({ ...subForm, target_class: e.target.value })}>
+                                                {classes.map(c => <option key={c} value={c}>{c}</option>)}
+                                            </select>
+                                        </div>
+                                        {subForm.category === 'Core' && (['XI', 'XII'].includes(subForm.target_class!)) && (
+                                            <div className="space-y-1">
+                                                <label className="text-[9px] font-black uppercase text-slate-400 ml-1">Stream</label>
+                                                <select className="w-full bg-slate-50 dark:bg-white/5 border border-slate-100 dark:border-white/10 rounded-xl px-4 py-3 text-xs font-bold" value={subForm.target_stream} onChange={e => setSubForm({ ...subForm, target_stream: e.target.value })}>
+                                                    {streams.map(s => <option key={s} value={s}>{s}</option>)}
+                                                </select>
+                                            </div>
+                                        )}
+                                    </div>
+                                    <button onClick={handleAddSubject} className="w-full py-4 bg-violet-600 text-white rounded-2xl font-black uppercase text-xs tracking-widest shadow-xl">Create Subject Folder</button>
+                                </div>
+                            ) : materialForm.title !== undefined ? (
+                                <div className="space-y-4">
+                                    <div className="space-y-1">
+                                        <label className="text-[9px] font-black uppercase text-slate-400 ml-1">Media Type</label>
+                                        <select className="w-full bg-slate-50 dark:bg-white/5 border border-slate-100 dark:border-white/10 rounded-xl px-4 py-3 text-xs font-bold" value={materialForm.type} onChange={e => setMaterialForm({ ...materialForm, type: e.target.value as MaterialType })}>
+                                            <option value="pdf">PDF Document</option>
+                                            <option value="image">Image File</option>
+                                            <option value="video">YouTube Video Link</option>
+                                        </select>
+                                    </div>
+                                    <div className="space-y-1">
+                                        <label className="text-[9px] font-black uppercase text-slate-400 ml-1">Title</label>
+                                        <input type="text" className="w-full bg-slate-50 dark:bg-white/5 border border-slate-100 dark:border-white/10 rounded-xl px-4 py-3 text-xs font-bold" value={materialForm.title} onChange={e => setMaterialForm({ ...materialForm, title: e.target.value })} placeholder="e.g. Chapter 1 Summary" />
+                                    </div>
+                                    <div className="space-y-1">
+                                        <label className="text-[9px] font-black uppercase text-slate-400 ml-1">{materialForm.type === 'video' ? 'YouTube URL' : 'File Direct URL'}</label>
+                                        <input type="text" className="w-full bg-slate-50 dark:bg-white/5 border border-slate-100 dark:border-white/10 rounded-xl px-4 py-3 text-xs font-bold" value={materialForm.url} onChange={e => setMaterialForm({ ...materialForm, url: e.target.value })} placeholder="https://..." />
+                                    </div>
+                                    <button onClick={handleAddMaterial} className="w-full py-4 bg-violet-600 text-white rounded-2xl font-black uppercase text-xs tracking-widest shadow-xl">Publish Content</button>
+                                </div>
+                            ) : (
+                                <div className="space-y-4">
+                                    <div className="space-y-1">
+                                        <label className="text-[9px] font-black uppercase text-slate-400 ml-1">Folder Name</label>
+                                        <input type="text" className="w-full bg-slate-50 dark:bg-white/5 border border-slate-100 dark:border-white/10 rounded-xl px-4 py-3 text-xs font-bold" value={folderForm.name} onChange={e => setFolderForm({ name: e.target.value })} placeholder="e.g. Notes, Videos, Practice" />
+                                    </div>
+                                    <button onClick={handleAddFolder} className="w-full py-4 bg-violet-600 text-white rounded-2xl font-black uppercase text-xs tracking-widest shadow-xl">Create Subfolder</button>
+                                </div>
+                            )}
 
-                        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 pt-4 border-t border-white/5">
-                            <div className="space-y-1.5 flex flex-col">
-                                <label className="text-[9px] font-black uppercase tracking-widest text-slate-900/30 dark:text-white/30 ml-2">Target Class</label>
-                                <select className="w-full bg-slate-900/[0.05] dark:bg-white/[0.05] border border-slate-900/[0.08] dark:border-white/[0.08] rounded-xl px-5 py-3 text-sm font-bold text-slate-900 dark:text-white outline-none" value={form.class_target} onChange={e => setForm({ ...form, class_target: e.target.value })}>
-                                    <option value="">All Classes</option>
-                                    {dbClasses.map(c => <option key={c.id} value={c.name}>{c.name}</option>)}
-                                </select>
-                            </div>
-                            <div className="space-y-1.5 flex flex-col">
-                                <label className="text-[9px] font-black uppercase tracking-widest text-slate-900/30 dark:text-white/30 ml-2">Target Stream</label>
-                                <select className="w-full bg-slate-900/[0.05] dark:bg-white/[0.05] border border-slate-900/[0.08] dark:border-white/[0.08] rounded-xl px-5 py-3 text-sm font-bold text-slate-900 dark:text-white outline-none" value={form.stream_target} onChange={e => setForm({ ...form, stream_target: e.target.value })}>
-                                    <option value="">All Streams</option>
-                                    {dbStreams.map(s => <option key={s.id} value={s.name}>{s.name}</option>)}
-                                </select>
-                            </div>
-                        </div>
-
-                        <div className="flex justify-end gap-3 pt-4">
-                            <button onClick={() => setIsAdding(false)} className="px-8 py-3.5 text-slate-900/40 dark:text-white/40 font-black uppercase text-[10px] tracking-widest transition-all">Cancel</button>
-                            <button onClick={handlePublish} className="px-10 py-3.5 bg-violet-600 text-white rounded-2xl font-black uppercase text-[10px] tracking-widest shadow-xl shadow-violet-900/20 active:scale-95 transition-all">Publish Resource</button>
-                        </div>
-                    </motion.div>
+                            <button onClick={() => { setIsAdding(false); setMaterialForm({ type: 'pdf', title: '', url: '' }); }} className="w-full text-[10px] font-black text-slate-400 uppercase tracking-widest hover:text-red-400 transition-colors">Dismiss</button>
+                        </motion.div>
+                    </div>
                 )}
             </AnimatePresence>
 
             {/* Content List */}
-            <div className="bg-slate-900/[0.02] dark:bg-white/[0.02] border border-slate-900/[0.06] dark:border-white/[0.06] rounded-3xl overflow-hidden">
-                <div className="px-6 py-5 border-b border-slate-900/[0.06] dark:border-white/[0.06] flex items-center justify-between">
-                    <h3 className="text-xs font-black text-slate-900 dark:text-white uppercase tracking-widest">Platform Tree</h3>
-                    <span className="text-[9px] font-bold text-slate-900/15 dark:text-white/15 uppercase tracking-[0.2em]">{contents.length} Items</span>
-                </div>
-                <div className="divide-y divide-white/[0.04] max-h-[600px] overflow-y-auto">
-                    {loading ? (
-                        [...Array(4)].map((_, i) => <div key={i} className="p-6 animate-pulse bg-white/5 m-4 rounded-2xl" />)
-                    ) : contents.map(c => (
-                        <div key={c.id} className="p-6 flex items-center justify-between hover:bg-slate-900/[0.03] dark:hover:bg-white/[0.03] transition-all group">
-                            <div className="flex items-center gap-5 min-w-0">
-                                <div className="w-12 h-12 bg-slate-900/5 dark:bg-white/5 border border-slate-900/10 dark:border-white/10 rounded-2xl flex items-center justify-center text-xl shadow-inner group-hover:scale-110 transition-transform">
-                                    {typeIcons[c.type] || '📦'}
-                                </div>
-                                <div className="min-w-0">
-                                    <h4 className="text-sm font-black text-slate-900 dark:text-white truncate uppercase tracking-tight">{c.title}</h4>
-                                    <div className="flex items-center gap-3 mt-1.5">
-                                        <span className="text-[8px] font-black bg-violet-500/10 text-violet-400 border border-violet-500/20 px-2 py-0.5 rounded uppercase tracking-widest">{c.type}</span>
-                                        {c.class_target && <span className="text-[8px] font-black bg-cyan-500/10 text-cyan-400 border border-cyan-500/20 px-2 py-0.5 rounded uppercase tracking-widest">{c.class_target}</span>}
-                                        {c.parent_id && <span className="text-[8px] font-black text-slate-900/20 dark:text-white/20 uppercase tracking-widest">Nested</span>}
+            <div className="bg-slate-900/[0.02] dark:bg-white/[0.02] border border-slate-900/[0.06] dark:border-white/[0.06] rounded-3xl overflow-hidden min-h-[400px]">
+                {loading ? (
+                    <div className="p-12 flex flex-col items-center gap-4">
+                        <RefreshCw className="animate-spin text-violet-500" />
+                        <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Refreshing Data Store...</p>
+                    </div>
+                ) : (
+                    <div className="divide-y divide-slate-900/[0.04] dark:divide-white/[0.04]">
+                        {view === 'subjects' ? (
+                            subjects.length === 0 ? (
+                                <div className="py-20 text-center text-slate-400 text-xs font-bold">No subjects added. Start with "New Subject".</div>
+                            ) : subjects.map(s => (
+                                <div key={s.id} onClick={() => drillDownSubject(s)} className="p-6 flex items-center justify-between hover:bg-slate-900/[0.03] dark:hover:bg-white/[0.03] transition-all cursor-pointer group">
+                                    <div className="flex items-center gap-5">
+                                        <div className="w-12 h-12 bg-violet-500/10 border border-violet-500/20 rounded-2xl flex items-center justify-center text-xl group-hover:scale-110 transition-transform">📚</div>
+                                        <div>
+                                            <h4 className="text-sm font-black text-slate-900 dark:text-white uppercase tracking-tight">{s.name}</h4>
+                                            <div className="flex items-center gap-3 mt-1">
+                                                <span className="text-[8px] font-black bg-slate-900/10 dark:bg-white/10 text-slate-500 px-2 py-0.5 rounded uppercase">{s.code}</span>
+                                                <span className={`text-[8px] font-black px-2 py-0.5 rounded uppercase ${s.category === 'Core' ? 'bg-amber-500/10 text-amber-500' : 'bg-green-500/10 text-green-500'}`}>{s.category}</span>
+                                                <span className="text-[8px] font-black text-slate-400 uppercase">Class {s.target_class} {s.target_stream}</span>
+                                            </div>
+                                        </div>
                                     </div>
+                                    <button onClick={(e) => { e.stopPropagation(); deleteSubject(s.id).then(loadSubjects); }} className="p-2 text-slate-300 hover:text-red-400 transition-colors opacity-0 group-hover:opacity-100"><Trash2 size={16} /></button>
                                 </div>
-                            </div>
-                            <button
-                                onClick={() => handleDelete(c.id, c.title)}
-                                className="w-10 h-10 flex items-center justify-center rounded-xl text-slate-900/10 dark:text-white/10 hover:text-red-400 hover:bg-red-400/10 transition-all opacity-0 group-hover:opacity-100"
-                            >
-                                <Trash2 size={16} />
-                            </button>
-                        </div>
-                    ))}
-                    {!loading && contents.length === 0 && (
-                        <div className="py-20 text-center">
-                            <p className="text-slate-900/20 dark:text-white/20 font-black uppercase tracking-widest">No resources published yet</p>
-                        </div>
-                    )}
-                </div>
+                            ))
+                        ) : (
+                            <>
+                                {/* Folders */}
+                                {folders.map(f => (
+                                    <div key={f.id} onClick={() => { setPath([...path, f]); loadFolderContent(currentSubject!.id, f.id); }} className="p-6 flex items-center justify-between hover:bg-slate-900/[0.03] dark:hover:bg-white/[0.03] transition-all cursor-pointer group">
+                                        <div className="flex items-center gap-5">
+                                            <div className="w-10 h-10 bg-slate-400/10 border border-slate-400/20 rounded-xl flex items-center justify-center text-lg">📁</div>
+                                            <h4 className="text-sm font-black text-slate-900 dark:text-white uppercase tracking-tight">{f.name}</h4>
+                                        </div>
+                                        <button onClick={(e) => { e.stopPropagation(); deleteFolder(f.id).then(() => loadFolderContent(currentSubject!.id, path[path.length - 1]?.id || null)); }} className="p-2 text-slate-300 hover:text-red-400 transition-colors opacity-0 group-hover:opacity-100"><Trash2 size={16} /></button>
+                                    </div>
+                                ))}
+                                {/* Materials */}
+                                {materials.map(m => (
+                                    <div key={m.id} className="p-6 flex items-center justify-between hover:bg-slate-900/[0.03] dark:hover:bg-white/[0.03] transition-all group">
+                                        <div className="flex items-center gap-5">
+                                            <div className="w-10 h-10 bg-cyan-500/10 border border-cyan-500/20 rounded-xl flex items-center justify-center text-lg">
+                                                {m.type === 'pdf' ? '📄' : m.type === 'image' ? '🖼️' : '📺'}
+                                            </div>
+                                            <div>
+                                                <h4 className="text-sm font-black text-slate-900 dark:text-white uppercase tracking-tight">{m.title}</h4>
+                                                <p className="text-[8px] font-black text-slate-400 uppercase mt-0.5">{m.type} Material</p>
+                                            </div>
+                                        </div>
+                                        <div className="flex items-center gap-2">
+                                            <a href={m.url} target="_blank" rel="noreferrer" className="p-2 text-slate-300 hover:text-violet-500 transition-colors"><Eye size={16} /></a>
+                                            <button onClick={() => deleteMaterial(m.id).then(() => loadFolderContent(currentSubject!.id, path[path.length - 1]?.id || null))} className="p-2 text-slate-300 hover:text-red-400 transition-colors"><Trash2 size={16} /></button>
+                                        </div>
+                                    </div>
+                                ))}
+                                {folders.length === 0 && materials.length === 0 && (
+                                    <div className="py-20 text-center text-slate-400 text-xs font-bold">This node is empty.</div>
+                                )}
+                            </>
+                        )}
+                    </div>
+                )}
             </div>
         </div>
     );
