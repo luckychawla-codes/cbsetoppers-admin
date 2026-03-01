@@ -78,6 +78,7 @@ export interface Subject {
     target_classes?: string[];
     target_streams?: string[];
     target_exams?: string[];
+    icon_url?: string;
     order_index: number;
     created_at: string;
 }

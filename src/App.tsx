@@ -22,6 +22,20 @@ type View = 'dashboard' | 'students' | 'content' | 'settings' | 'operators';
 
 const LOGO_URL = "https://i.ibb.co/vC4MYFFk/1770137585956.png";
 
+const SUBJECT_ICONS = [
+    { id: 'biology', name: 'Biology', url: '/assets/subjects/biology.png' },
+    { id: 'botany', name: 'Botany/Plants', url: '/assets/subjects/botany.png' },
+    { id: 'chemistry', name: 'Chemistry', url: '/assets/subjects/chemistry.png' },
+    { id: 'eng', name: 'English', url: '/assets/subjects/eng.png' },
+    { id: 'landscape', name: 'Geography/Landscape', url: '/assets/subjects/landscape.png' },
+    { id: 'neural', name: 'Neural/AI', url: '/assets/subjects/neural.png' },
+    { id: 'psychology', name: 'Psychology', url: '/assets/subjects/psychology.png' },
+    { id: 'relativity', name: 'Relativity/Physics', url: '/assets/subjects/relativity.png' },
+    { id: 'society', name: 'Civics/Society', url: '/assets/subjects/society.png' },
+    { id: 'sports', name: 'Physical Ed/Sports', url: '/assets/subjects/sports.png' },
+    { id: 'tools', name: 'Tools/Math', url: '/assets/subjects/tools.png' }
+];
+
 const ROLE_CONFIG: Record<OperatorRole, { label: string; color: string; bg: string; icon: React.ReactNode }> = {
     founder: {
         label: 'Founder',
@@ -680,7 +694,8 @@ const ContentView: React.FC = () => {
         target_stream: 'PCM', // Keep for now
         target_classes: ['XII'],
         target_streams: ['PCM'],
-        target_exams: []
+        target_exams: [],
+        icon_url: '/assets/subjects/relativity.png'
     });
     const [folderForm, setFolderForm] = useState({ name: '' });
     const [materialForm, setMaterialForm] = useState<Partial<Material>>({ type: 'pdf', title: '', url: '' });
@@ -894,7 +909,7 @@ const ContentView: React.FC = () => {
                     </div>
                 </div>
                 {view === 'subjects' ? (
-                    <button onClick={() => { setIsEditing(false); setEditingId(null); setSubForm({ name: '', code: '', category: 'Core', target_class: 'XII', target_stream: 'PCM', target_classes: ['XII'], target_streams: ['PCM'], target_exams: [] }); setIsAdding(true); }} className="flex items-center gap-2 px-6 py-3 bg-violet-600 text-white rounded-xl text-[10px] font-black uppercase tracking-widest shadow-lg active:scale-95 transition-all">
+                    <button onClick={() => { setIsEditing(false); setEditingId(null); setSubForm({ name: '', code: '', category: 'Core', target_class: 'XII', target_stream: 'PCM', target_classes: ['XII'], target_streams: ['PCM'], target_exams: [], icon_url: '/assets/subjects/relativity.png' }); setIsAdding(true); }} className="flex items-center gap-2 px-6 py-3 bg-violet-600 text-white rounded-xl text-[10px] font-black uppercase tracking-widest shadow-lg active:scale-95 transition-all">
                         <Plus size={14} /> New Subject
                     </button>
                 ) : (
@@ -1036,6 +1051,29 @@ const ContentView: React.FC = () => {
                                         </div>
                                     </div>
 
+                                    {/* Subject Icon Picker */}
+                                    <div className="space-y-3">
+                                        <label className="text-[9px] font-black uppercase text-slate-400 ml-1">Subject Representation Icon</label>
+                                        <div className="grid grid-cols-4 gap-2">
+                                            {SUBJECT_ICONS.map(icon => (
+                                                <button
+                                                    key={icon.id}
+                                                    type="button"
+                                                    onClick={() => setSubForm({ ...subForm, icon_url: icon.url })}
+                                                    className={`relative p-2 rounded-xl border-2 transition-all flex flex-col items-center gap-1.5 ${subForm.icon_url === icon.url ? 'bg-violet-600/10 border-violet-500 shadow-lg' : 'bg-slate-50 dark:bg-white/5 border-transparent hover:border-white/10'}`}
+                                                >
+                                                    <img src={icon.url} alt={icon.name} className="w-8 h-8 object-contain" />
+                                                    <span className="text-[7px] font-black uppercase text-center opacity-40">{icon.name}</span>
+                                                    {subForm.icon_url === icon.url && (
+                                                        <div className="absolute -top-1.5 -right-1.5 w-4 h-4 bg-violet-500 rounded-full flex items-center justify-center border-2 border-white dark:border-[#0c0c14]">
+                                                            <CheckCircle2 size={8} className="text-white" />
+                                                        </div>
+                                                    )}
+                                                </button>
+                                            ))}
+                                        </div>
+                                    </div>
+
                                     <button onClick={handleAddSubject} className="w-full py-4 bg-violet-600 text-white rounded-2xl font-black uppercase text-xs tracking-widest shadow-xl mt-4 active:scale-95 transition-all">{isEditing ? 'Update Subject' : 'Create Subject Folder'}</button>
                                 </div>
                             ) : (
@@ -1099,7 +1137,9 @@ const ContentView: React.FC = () => {
                             ) : subjects.map(s => (
                                 <div key={s.id} onClick={() => drillDownSubject(s)} className="p-6 flex items-center justify-between hover:bg-slate-900/[0.03] dark:hover:bg-white/[0.03] transition-all cursor-pointer group">
                                     <div className="flex items-center gap-5">
-                                        <div className="w-12 h-12 bg-violet-500/10 border border-violet-500/20 rounded-2xl flex items-center justify-center text-xl group-hover:scale-110 transition-transform">📚</div>
+                                        <div className="w-12 h-12 bg-white/5 dark:bg-white/5 border border-white/10 rounded-2xl flex items-center justify-center p-2 group-hover:scale-110 transition-transform overflow-hidden shadow-sm">
+                                            <img src={s.icon_url || '/assets/subjects/relativity.png'} className="w-full h-full object-contain filter drop-shadow-sm" onError={(e) => (e.currentTarget.src = 'https://cdn-icons-png.flaticon.com/512/3426/3426653.png')} />
+                                        </div>
                                         <div>
                                             <h4 className="text-sm font-black text-slate-900 dark:text-white uppercase tracking-tight">{s.name}</h4>
                                             <div className="flex items-center gap-3 mt-1">
