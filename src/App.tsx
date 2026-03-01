@@ -879,15 +879,17 @@ const ContentView: React.FC = () => {
                                                 return (
                                                     <button
                                                         key={c}
+                                                        type="button"
                                                         onClick={() => {
-                                                            const current = subForm.target_classes || [];
-                                                            const next = isSelected ? current.filter(x => x !== c) : [...current, c];
-                                                            // Logic: if class IX or X selected, Science stream is implied
-                                                            let nextStreams = subForm.target_streams || [];
-                                                            if (!isSelected && (c === 'IX' || c === 'X') && !nextStreams.includes('Science')) {
-                                                                nextStreams = [...nextStreams, 'Science'];
-                                                            }
-                                                            setSubForm({ ...subForm, target_classes: next, target_streams: nextStreams });
+                                                            setSubForm(prev => {
+                                                                const current = prev.target_classes || [];
+                                                                const next = isSelected ? current.filter((x: string) => x !== c) : [...current, c];
+                                                                let nextStreams = prev.target_streams || [];
+                                                                if (!isSelected && (c === 'IX' || c === 'X') && !nextStreams.includes('Science')) {
+                                                                    nextStreams = [...nextStreams, 'Science'];
+                                                                }
+                                                                return { ...prev, target_classes: next, target_streams: nextStreams };
+                                                            });
                                                         }}
                                                         className={`px-3 py-1.5 rounded-lg text-[10px] font-black uppercase transition-all border ${isSelected ? 'bg-violet-600 border-violet-500 text-white shadow-lg' : 'bg-slate-50 dark:bg-white/5 border-slate-100 dark:border-white/10 text-slate-400 opacity-60'}`}
                                                     >
@@ -912,11 +914,14 @@ const ContentView: React.FC = () => {
                                                     return (
                                                         <button
                                                             key={s}
+                                                            type="button"
                                                             disabled={isLockedScience}
                                                             onClick={() => {
-                                                                const current = subForm.target_streams || [];
-                                                                const next = isSelected ? current.filter(x => x !== s) : [...current, s];
-                                                                setSubForm({ ...subForm, target_streams: next });
+                                                                setSubForm(prev => {
+                                                                    const current = prev.target_streams || [];
+                                                                    const next = isSelected ? current.filter((x: string) => x !== s) : [...current, s];
+                                                                    return { ...prev, target_streams: next };
+                                                                });
                                                             }}
                                                             className={`px-3 py-1.5 rounded-lg text-[10px] font-black uppercase transition-all border ${isSelected ? 'bg-cyan-600 border-cyan-500 text-white shadow-lg' : 'bg-slate-50 dark:bg-white/5 border-slate-100 dark:border-white/10 text-slate-400 opacity-60'} ${isLockedScience ? 'cursor-not-allowed opacity-100 bg-cyan-600/30 border-cyan-500/30' : ''}`}
                                                         >
@@ -938,10 +943,13 @@ const ContentView: React.FC = () => {
                                                 return (
                                                     <button
                                                         key={e}
+                                                        type="button"
                                                         onClick={() => {
-                                                            const current = subForm.target_exams || [];
-                                                            const next = isSelected ? current.filter(x => x !== e) : [...current, e];
-                                                            setSubForm({ ...subForm, target_exams: next });
+                                                            setSubForm(prev => {
+                                                                const current = prev.target_exams || [];
+                                                                const next = isSelected ? current.filter((x: string) => x !== e) : [...current, e];
+                                                                return { ...prev, target_exams: next };
+                                                            });
                                                         }}
                                                         className={`px-3 py-1.5 rounded-lg text-[10px] font-black uppercase transition-all border ${isSelected ? 'bg-emerald-600 border-emerald-500 text-white shadow-lg' : 'bg-slate-50 dark:bg-white/5 border-slate-100 dark:border-white/10 text-slate-400 opacity-60'}`}
                                                     >
