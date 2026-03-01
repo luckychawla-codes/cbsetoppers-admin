@@ -775,15 +775,17 @@ const ContentView: React.FC = () => {
                     <button onClick={() => setIsAdding(true)} className="flex items-center gap-2 px-6 py-3 bg-violet-600 text-white rounded-xl text-[10px] font-black uppercase tracking-widest shadow-lg active:scale-95 transition-all">
                         <Plus size={14} /> New Subject
                     </button>
-                ) : path.length > 0 && (
-                    <div className="flex gap-2">
+                } : (
+                <div className="flex gap-2">
+                    {path.length > 0 && (
                         <button onClick={() => { setMaterialForm({ ...materialForm, type: 'pdf' }); setIsAdding(true); }} className="px-4 py-2 bg-slate-900/5 dark:bg-white/5 text-[10px] font-black uppercase rounded-lg border border-slate-900/10 dark:border-white/10 hover:bg-violet-500/10 hover:text-violet-500 transition-all">
                             Add Content
                         </button>
-                        <button onClick={() => { setFolderForm({ name: '' }); setIsAdding(true); }} className="px-4 py-2 bg-violet-600 text-white text-[10px] font-black uppercase rounded-lg shadow-md active:scale-95 transition-all">
-                            Create Folder
-                        </button>
-                    </div>
+                    )}
+                    <button onClick={() => { setFolderForm({ name: '' }); setIsAdding(true); }} className="px-4 py-2 bg-violet-600 text-white text-[10px] font-black uppercase rounded-lg shadow-md active:scale-95 transition-all">
+                        Create Folder
+                    </button>
+                </div>
                 )}
             </div>
 
