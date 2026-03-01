@@ -3,8 +3,8 @@ import { motion, AnimatePresence } from 'framer-motion';
 import {
     LayoutDashboard, Users, Settings, LogOut, Search,
     ShieldAlert, Calendar, Clock, TrendingUp, Activity,
-    Shield, Plus, Trash2, Eye, EyeOff, ChevronRight,
-    Zap, BarChart3, AlertTriangle, CheckCircle2, XCircle,
+    Shield, Plus, Trash2, Pencil, Eye, EyeOff, ChevronRight, ChevronUp, ChevronDown,
+    Zap, BarChart3, AlertTriangle, CheckCircle2, XCircle, Github,
     RefreshCw, MessageSquare, Crown, Star, Lock, Sun, Moon, BookOpen, Download
 } from 'lucide-react';
 import {
@@ -12,9 +12,9 @@ import {
     updateMaintenanceSettings, supabase, signInOperator, signOutOperator,
     fetchAllOperators, createOperator, deleteOperator,
     Operator, OperatorRole,
-    fetchSubjects, createSubject, deleteSubject,
-    fetchFolders, createFolder, deleteFolder,
-    fetchMaterials, createMaterial, deleteMaterial,
+    fetchSubjects, createSubject, deleteSubject, updateSubject,
+    fetchFolders, createFolder, deleteFolder, updateFolder,
+    fetchMaterials, createMaterial, deleteMaterial, updateMaterial,
     Subject, Folder, Material, SubjectCategory, MaterialType
 } from './services/supabase';
 
@@ -670,6 +670,8 @@ const ContentView: React.FC = () => {
     };
     const [loading, setLoading] = useState(true);
     const [isAdding, setIsAdding] = useState(false);
+    const [isEditing, setIsEditing] = useState(false);
+    const [editingId, setEditingId] = useState<string | null>(null);
 
     // Form states
     const [subForm, setSubForm] = useState<Partial<Subject>>({
@@ -716,11 +718,8 @@ const ContentView: React.FC = () => {
         if (!subForm.name || !subForm.code) return alert('Name and Code required');
         if (!subForm.target_classes || subForm.target_classes.length === 0) return alert('Select at least one class');
 
-        // Logic check: if Class X is selected, ensure Science is included or handle as default
-        const hasX = subForm.target_classes.includes('X');
         const hasHigher = subForm.target_classes.some(c => ['XI', 'XII', 'XII+'].includes(c));
 
-        // Strict Validation
         if (subForm.category === 'Core') {
             if (hasHigher && (!subForm.target_streams || subForm.target_streams.length === 0)) {
                 return alert('Stream is mandatory for Class XI/XII Core subjects');
@@ -728,32 +727,43 @@ const ContentView: React.FC = () => {
         }
 
         try {
-            await createSubject(subForm);
+            if (isEditing && editingId) {
+                await updateSubject(editingId, subForm);
+            } else {
+                await createSubject({ ...subForm, order_index: subjects.length });
+            }
             setIsAdding(false);
+            setIsEditing(false);
+            setEditingId(null);
             loadSubjects();
-        } catch (e: any) { alert(e.message || 'Error creating subject'); }
+        } catch (e: any) { alert(e.message || 'Error saving subject'); }
     };
 
     const handleAddFolder = async () => {
         if (!folderForm.name || !currentSubject) return;
         try {
-            await createFolder({
-                subject_id: currentSubject.id,
-                parent_id: path[path.length - 1]?.id || null,
-                name: folderForm.name,
-                order_index: folders.length
-            });
+            if (isEditing && editingId) {
+                await updateFolder(editingId, { name: folderForm.name });
+            } else {
+                await createFolder({
+                    subject_id: currentSubject.id,
+                    parent_id: path[path.length - 1]?.id || null,
+                    name: folderForm.name,
+                    order_index: folders.length
+                });
+            }
             setFolderForm({ name: '' });
             setIsAdding(false);
+            setIsEditing(false);
+            setEditingId(null);
             loadFolderContent(currentSubject.id, path[path.length - 1]?.id || null);
-        } catch (_) { alert('Error'); }
+        } catch (_) { alert('Error saving folder'); }
     };
 
     const handleAddMaterial = async () => {
         const parentFolder = path[path.length - 1];
         if (!currentSubject || !materialForm.title || !materialForm.url) return alert('Fill all fields');
 
-        // Auto-fix Google Drive Links for App Compatibility
         let finalUrl = materialForm.url;
         if (finalUrl.includes('drive.google.com')) {
             finalUrl = finalUrl.replace(/\/view(\?.*)?$/, '/preview');
@@ -767,17 +777,77 @@ const ContentView: React.FC = () => {
         }
 
         try {
-            await createMaterial({
-                ...materialForm,
-                url: finalUrl,
-                subject_id: currentSubject.id,
-                folder_id: parentFolder?.id || null,
-                order_index: materials.length
-            });
+            if (isEditing && editingId) {
+                await updateMaterial(editingId, { ...materialForm, url: finalUrl });
+            } else {
+                await createMaterial({
+                    ...materialForm,
+                    url: finalUrl,
+                    subject_id: currentSubject.id,
+                    folder_id: parentFolder?.id || null,
+                    order_index: materials.length
+                });
+            }
             setMaterialForm({ type: 'pdf', title: '', url: '' });
             setIsAdding(false);
+            setIsEditing(false);
+            setEditingId(null);
             loadFolderContent(currentSubject.id, parentFolder?.id || null);
-        } catch (_) { alert('Error'); }
+        } catch (_) { alert('Error saving material'); }
+    };
+
+    const startEditSubject = (s: Subject) => {
+        setSubForm(s);
+        setEditingId(s.id);
+        setIsEditing(true);
+        setIsAdding(true);
+    };
+
+    const startEditFolder = (f: Folder) => {
+        setFolderForm({ name: f.name });
+        setEditingId(f.id);
+        setAddType('subfolder');
+        setIsEditing(true);
+        setIsAdding(true);
+    };
+
+    const startEditMaterial = (m: Material) => {
+        setMaterialForm({ title: m.title, url: m.url, type: m.type });
+        setEditingId(m.id);
+        setAddType(m.type as any);
+        setIsEditing(true);
+        setIsAdding(true);
+    };
+
+    const handleReorder = async (type: 'subject' | 'folder' | 'material', direction: 'up' | 'down', item: any) => {
+        let list: any[] = [];
+        if (type === 'subject') list = subjects;
+        else if (type === 'folder') list = folders;
+        else list = materials;
+
+        const idx = list.findIndex(i => i.id === item.id);
+        if (direction === 'up' && idx === 0) return;
+        if (direction === 'down' && idx === list.length - 1) return;
+
+        const otherIdx = direction === 'up' ? idx - 1 : idx + 1;
+        const otherItem = list[otherIdx];
+
+        const tempIndex = item.order_index;
+        const newItemOrder = otherItem.order_index;
+        const newOtherOrder = tempIndex;
+
+        try {
+            if (type === 'subject') {
+                await Promise.all([updateSubject(item.id, { order_index: newItemOrder }), updateSubject(otherItem.id, { order_index: newOtherOrder })]);
+                loadSubjects();
+            } else if (type === 'folder') {
+                await Promise.all([updateFolder(item.id, { order_index: newItemOrder }), updateFolder(otherItem.id, { order_index: newOtherOrder })]);
+                loadFolderContent(currentSubject!.id, path[path.length - 1]?.id || null);
+            } else {
+                await Promise.all([updateMaterial(item.id, { order_index: newItemOrder }), updateMaterial(otherItem.id, { order_index: newOtherOrder })]);
+                loadFolderContent(currentSubject!.id, path[path.length - 1]?.id || null);
+            }
+        } catch (_) { alert('Ordering Failed'); }
     };
 
     const drillDownSubject = (s: Subject) => {
@@ -818,11 +888,11 @@ const ContentView: React.FC = () => {
                     </div>
                 </div>
                 {view === 'subjects' ? (
-                    <button onClick={() => setIsAdding(true)} className="flex items-center gap-2 px-6 py-3 bg-violet-600 text-white rounded-xl text-[10px] font-black uppercase tracking-widest shadow-lg active:scale-95 transition-all">
+                    <button onClick={() => { setIsEditing(false); setEditingId(null); setSubForm({ category: 'Core', target_classes: ['XII'], target_streams: ['PCM'], target_exams: [] }); setIsAdding(true); }} className="flex items-center gap-2 px-6 py-3 bg-violet-600 text-white rounded-xl text-[10px] font-black uppercase tracking-widest shadow-lg active:scale-95 transition-all">
                         <Plus size={14} /> New Subject
                     </button>
                 ) : (
-                    <button onClick={() => { setAddType('subfolder'); setFolderForm({ name: '' }); setMaterialForm({ type: 'pdf', title: '', url: '' }); setIsAdding(true); }} className="flex items-center gap-2 px-6 py-3 bg-violet-600 text-white rounded-xl text-[10px] font-black uppercase tracking-widest shadow-lg active:scale-95 transition-all">
+                    <button onClick={() => { setIsEditing(false); setEditingId(null); setAddType('subfolder'); setFolderForm({ name: '' }); setMaterialForm({ type: 'pdf', title: '', url: '' }); setIsAdding(true); }} className="flex items-center gap-2 px-6 py-3 bg-violet-600 text-white rounded-xl text-[10px] font-black uppercase tracking-widest shadow-lg active:scale-95 transition-all">
                         <Plus size={14} /> Add Content
                     </button>
                 )}
@@ -847,7 +917,7 @@ const ContentView: React.FC = () => {
                     <div className="fixed inset-0 z-[100] flex items-center justify-center p-6 backdrop-blur-md bg-slate-900/40">
                         <motion.div initial={{ scale: 0.9, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} exit={{ scale: 0.9, opacity: 0 }} className="bg-white dark:bg-[#0c0c14] border border-white/10 rounded-3xl p-8 max-w-lg w-full shadow-2xl space-y-6">
                             <h2 className="text-xl font-black uppercase tracking-tighter text-slate-900 dark:text-white shadow-sm">
-                                {view === 'subjects' ? 'Direct Subject Creation' : 'Structure / Content Node'}
+                                {isEditing ? 'Modify Content Node' : (view === 'subjects' ? 'Direct Subject Creation' : 'Structure / Content Node')}
                             </h2>
 
                             {view === 'subjects' ? (
@@ -960,7 +1030,7 @@ const ContentView: React.FC = () => {
                                         </div>
                                     </div>
 
-                                    <button onClick={handleAddSubject} className="w-full py-4 bg-violet-600 text-white rounded-2xl font-black uppercase text-xs tracking-widest shadow-xl mt-4 active:scale-95 transition-all">Create Subject Folder</button>
+                                    <button onClick={handleAddSubject} className="w-full py-4 bg-violet-600 text-white rounded-2xl font-black uppercase text-xs tracking-widest shadow-xl mt-4 active:scale-95 transition-all">{isEditing ? 'Update Subject' : 'Create Subject Folder'}</button>
                                 </div>
                             ) : (
                                 <div className="space-y-4">
@@ -984,7 +1054,7 @@ const ContentView: React.FC = () => {
                                                 <label className="text-[9px] font-black uppercase text-slate-400 ml-1">Folder Name</label>
                                                 <input type="text" className="w-full bg-slate-50 dark:bg-white/5 border border-slate-100 dark:border-white/10 rounded-xl px-4 py-3 text-xs font-bold" value={folderForm.name} onChange={e => setFolderForm({ name: e.target.value })} placeholder="e.g. Notes, Videos, Practice" />
                                             </div>
-                                            <button onClick={handleAddFolder} className="w-full py-4 bg-violet-600 text-white rounded-2xl font-black uppercase text-xs tracking-widest shadow-xl">Create Subfolder</button>
+                                            <button onClick={handleAddFolder} className="w-full py-4 bg-violet-600 text-white rounded-2xl font-black uppercase text-xs tracking-widest shadow-xl">{isEditing ? 'Update Folder' : 'Create Subfolder'}</button>
                                         </>
                                     ) : (
                                         <>
@@ -996,13 +1066,13 @@ const ContentView: React.FC = () => {
                                                 <label className="text-[9px] font-black uppercase text-slate-400 ml-1">{addType === 'video' ? 'YouTube URL' : 'File Direct URL'}</label>
                                                 <input type="text" className="w-full bg-slate-50 dark:bg-white/5 border border-slate-100 dark:border-white/10 rounded-xl px-4 py-3 text-xs font-bold" value={materialForm.url} onChange={e => setMaterialForm({ ...materialForm, url: e.target.value })} placeholder="https://..." />
                                             </div>
-                                            <button onClick={handleAddMaterial} className="w-full py-4 bg-violet-600 text-white rounded-2xl font-black uppercase text-xs tracking-widest shadow-xl">Publish Content</button>
+                                            <button onClick={handleAddMaterial} className="w-full py-4 bg-violet-600 text-white rounded-2xl font-black uppercase text-xs tracking-widest shadow-xl">{isEditing ? 'Save Changes' : 'Publish Content'}</button>
                                         </>
                                     )}
                                 </div>
                             )}
 
-                            <button onClick={() => { setIsAdding(false); setMaterialForm({ type: 'pdf', title: '', url: '' }); }} className="w-full text-[10px] font-black text-slate-400 uppercase tracking-widest hover:text-red-400 transition-colors">Dismiss</button>
+                            <button onClick={() => { setIsAdding(false); setIsEditing(false); setEditingId(null); setMaterialForm({ type: 'pdf', title: '', url: '' }); }} className="w-full text-[10px] font-black text-slate-400 uppercase tracking-widest hover:text-red-400 transition-colors">Dismiss</button>
                         </motion.div>
                     </div>
                 )}
@@ -1037,7 +1107,14 @@ const ContentView: React.FC = () => {
                                             </div>
                                         </div>
                                     </div>
-                                    <button onClick={(e) => { e.stopPropagation(); deleteSubject(s.id).then(loadSubjects); }} className="p-2 text-slate-300 hover:text-red-400 transition-colors opacity-0 group-hover:opacity-100"><Trash2 size={16} /></button>
+                                    <div className="flex items-center gap-2">
+                                        <div className="flex flex-col gap-1 mr-2">
+                                            <button onClick={(e) => { e.stopPropagation(); handleReorder('subject', 'up', s); }} className="p-1 text-slate-300 hover:text-violet-500 transition-colors"><ChevronUp size={12} /></button>
+                                            <button onClick={(e) => { e.stopPropagation(); handleReorder('subject', 'down', s); }} className="p-1 text-slate-300 hover:text-violet-500 transition-colors"><ChevronDown size={12} /></button>
+                                        </div>
+                                        <button onClick={(e) => { e.stopPropagation(); startEditSubject(s); }} className="p-2 text-slate-300 hover:text-violet-500 transition-colors opacity-0 group-hover:opacity-100"><Pencil size={16} /></button>
+                                        <button onClick={(e) => { e.stopPropagation(); deleteSubject(s.id).then(loadSubjects); }} className="p-2 text-slate-300 hover:text-red-400 transition-colors opacity-0 group-hover:opacity-100"><Trash2 size={16} /></button>
+                                    </div>
                                 </div>
                             ))
                         ) : (
@@ -1049,7 +1126,14 @@ const ContentView: React.FC = () => {
                                             <div className="w-10 h-10 bg-slate-400/10 border border-slate-400/20 rounded-xl flex items-center justify-center text-lg">📁</div>
                                             <h4 className="text-sm font-black text-slate-900 dark:text-white uppercase tracking-tight">{f.name}</h4>
                                         </div>
-                                        <button onClick={(e) => { e.stopPropagation(); deleteFolder(f.id).then(() => loadFolderContent(currentSubject!.id, path[path.length - 1]?.id || null)); }} className="p-2 text-slate-300 hover:text-red-400 transition-colors opacity-0 group-hover:opacity-100"><Trash2 size={16} /></button>
+                                        <div className="flex items-center gap-2">
+                                            <div className="flex flex-col gap-1 mr-2">
+                                                <button onClick={(e) => { e.stopPropagation(); handleReorder('folder', 'up', f); }} className="p-1 text-slate-300 hover:text-violet-500 transition-colors"><ChevronUp size={12} /></button>
+                                                <button onClick={(e) => { e.stopPropagation(); handleReorder('folder', 'down', f); }} className="p-1 text-slate-300 hover:text-violet-500 transition-colors"><ChevronDown size={12} /></button>
+                                            </div>
+                                            <button onClick={(e) => { e.stopPropagation(); startEditFolder(f); }} className="p-2 text-slate-300 hover:text-violet-500 transition-colors opacity-0 group-hover:opacity-100"><Pencil size={16} /></button>
+                                            <button onClick={(e) => { e.stopPropagation(); deleteFolder(f.id).then(() => loadFolderContent(currentSubject!.id, path[path.length - 1]?.id || null)); }} className="p-2 text-slate-300 hover:text-red-400 transition-colors opacity-0 group-hover:opacity-100"><Trash2 size={16} /></button>
+                                        </div>
                                     </div>
                                 ))}
                                 {/* Materials */}
@@ -1065,6 +1149,10 @@ const ContentView: React.FC = () => {
                                             </div>
                                         </div>
                                         <div className="flex items-center gap-2">
+                                            <div className="flex flex-col gap-1 mr-2">
+                                                <button onClick={() => handleReorder('material', 'up', m)} className="p-1 text-slate-300 hover:text-violet-500 transition-colors"><ChevronUp size={12} /></button>
+                                                <button onClick={() => handleReorder('material', 'down', m)} className="p-1 text-slate-300 hover:text-violet-500 transition-colors"><ChevronDown size={12} /></button>
+                                            </div>
                                             <a href={m.url} target="_blank" rel="noreferrer" className="p-2 text-slate-300 hover:text-violet-500 transition-colors"><Eye size={16} /></a>
                                             {m.type === 'pdf' && (
                                                 <button
@@ -1074,6 +1162,7 @@ const ContentView: React.FC = () => {
                                                     <Download size={16} />
                                                 </button>
                                             )}
+                                            <button onClick={() => startEditMaterial(m)} className="p-2 text-slate-300 hover:text-violet-500 transition-colors"><Pencil size={16} /></button>
                                             <button onClick={() => deleteMaterial(m.id).then(() => loadFolderContent(currentSubject!.id, path[path.length - 1]?.id || null))} className="p-2 text-slate-300 hover:text-red-400 transition-colors"><Trash2 size={16} /></button>
                                         </div>
                                     </div>

@@ -78,6 +78,7 @@ export interface Subject {
     target_classes?: string[];
     target_streams?: string[];
     target_exams?: string[];
+    order_index: number;
     created_at: string;
 }
 
@@ -103,7 +104,7 @@ export interface Material {
 
 // SUBJECTS
 export const fetchSubjects = async (): Promise<Subject[]> => {
-    const { data, error } = await supabase.from('subjects').select('*').order('name');
+    const { data, error } = await supabase.from('subjects').select('*').order('order_index');
     if (error) throw error;
     return data || [];
 };
@@ -117,6 +118,12 @@ export const createSubject = async (subject: Partial<Subject>) => {
 
 export const deleteSubject = async (id: string) => {
     await supabase.from('subjects').delete().eq('id', id);
+};
+
+export const updateSubject = async (id: string, updates: Partial<Subject>) => {
+    const { data, error } = await supabase.from('subjects').update(updates).eq('id', id).select().single();
+    if (error) throw error;
+    return data;
 };
 
 // FOLDERS
@@ -140,6 +147,12 @@ export const deleteFolder = async (id: string) => {
     await supabase.from('folders').delete().eq('id', id);
 };
 
+export const updateFolder = async (id: string, updates: Partial<Folder>) => {
+    const { data, error } = await supabase.from('folders').update(updates).eq('id', id).select().single();
+    if (error) throw error;
+    return data;
+};
+
 // MATERIALS
 export const fetchMaterials = async (subjectId: string, folderId: string | null = null): Promise<Material[]> => {
     let query = supabase.from('materials').select('*').eq('subject_id', subjectId);
@@ -159,6 +172,12 @@ export const createMaterial = async (material: Partial<Material>) => {
 
 export const deleteMaterial = async (id: string) => {
     await supabase.from('materials').delete().eq('id', id);
+};
+
+export const updateMaterial = async (id: string, updates: Partial<Material>) => {
+    const { data, error } = await supabase.from('materials').update(updates).eq('id', id).select().single();
+    if (error) throw error;
+    return data;
 };
 
 // ─── ANALYTICS (DASHBOARD) ───────────────────────────────────────────
