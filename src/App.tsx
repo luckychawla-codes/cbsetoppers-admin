@@ -942,7 +942,8 @@ const ContentView: React.FC = () => {
                             </h2>
 
                             {view === 'subjects' ? (
-                                <div className="space-y-4 max-h-[60vh] overflow-y-auto px-1">
+                                <>
+                                <div className="space-y-4 max-h-[50vh] overflow-y-auto px-1 custom-scrollbar">
                                     <div className="grid grid-cols-2 gap-4">
                                         <div className="space-y-1">
                                             <label className="text-[9px] font-black uppercase text-slate-400 ml-1">Type</label>
@@ -959,6 +960,29 @@ const ContentView: React.FC = () => {
                                     <div className="space-y-1">
                                         <label className="text-[9px] font-black uppercase text-slate-400 ml-1">Name</label>
                                         <input type="text" className="w-full bg-slate-50 dark:bg-white/5 border border-slate-100 dark:border-white/10 rounded-xl px-4 py-3 text-xs font-bold" value={subForm.name} onChange={e => setSubForm({ ...subForm, name: e.target.value })} placeholder="e.g. Physics" />
+                                    </div>
+
+                                    {/* Subject Icon Picker - Moved Up for Visibility */}
+                                    <div className="space-y-3 p-4 bg-slate-50 dark:bg-white/5 rounded-2xl border border-dashed border-slate-200 dark:border-white/10">
+                                        <label className="text-[9px] font-black uppercase text-violet-500 ml-1 flex items-center gap-1.5"><Star size={10} /> Choose Representation Icon</label>
+                                        <div className="grid grid-cols-4 gap-2">
+                                            {SUBJECT_ICONS.map(icon => (
+                                                <button
+                                                    key={icon.id}
+                                                    type="button"
+                                                    onClick={() => setSubForm({ ...subForm, icon_url: icon.url })}
+                                                    className={`relative p-2 rounded-xl border-2 transition-all flex flex-col items-center gap-1.5 ${subForm.icon_url === icon.url ? 'bg-violet-600/10 border-violet-500 shadow-lg scale-105 z-10' : 'bg-white dark:bg-white/5 border-transparent hover:border-violet-200'}`}
+                                                >
+                                                    <img src={icon.url} alt={icon.name} className="w-8 h-8 object-contain" />
+                                                    <span className="text-[7px] font-black uppercase text-center opacity-40">{icon.name}</span>
+                                                    {subForm.icon_url === icon.url && (
+                                                        <div className="absolute -top-1.5 -right-1.5 w-4 h-4 bg-violet-500 rounded-full flex items-center justify-center border-2 border-white dark:border-[#0c0c14]">
+                                                            <CheckCircle2 size={8} className="text-white" />
+                                                        </div>
+                                                    )}
+                                                </button>
+                                            ))}
+                                        </div>
                                     </div>
 
                                     {/* Target Classes - Multi Select */}
@@ -1051,177 +1075,158 @@ const ContentView: React.FC = () => {
                                         </div>
                                     </div>
 
-                                    {/* Subject Icon Picker */}
-                                    <div className="space-y-3">
-                                        <label className="text-[9px] font-black uppercase text-slate-400 ml-1">Subject Representation Icon</label>
-                                        <div className="grid grid-cols-4 gap-2">
-                                            {SUBJECT_ICONS.map(icon => (
-                                                <button
-                                                    key={icon.id}
-                                                    type="button"
-                                                    onClick={() => setSubForm({ ...subForm, icon_url: icon.url })}
-                                                    className={`relative p-2 rounded-xl border-2 transition-all flex flex-col items-center gap-1.5 ${subForm.icon_url === icon.url ? 'bg-violet-600/10 border-violet-500 shadow-lg' : 'bg-slate-50 dark:bg-white/5 border-transparent hover:border-white/10'}`}
-                                                >
-                                                    <img src={icon.url} alt={icon.name} className="w-8 h-8 object-contain" />
-                                                    <span className="text-[7px] font-black uppercase text-center opacity-40">{icon.name}</span>
-                                                    {subForm.icon_url === icon.url && (
-                                                        <div className="absolute -top-1.5 -right-1.5 w-4 h-4 bg-violet-500 rounded-full flex items-center justify-center border-2 border-white dark:border-[#0c0c14]">
-                                                            <CheckCircle2 size={8} className="text-white" />
-                                                        </div>
-                                                    )}
-                                                </button>
-                                            ))}
                                         </div>
                                     </div>
-
-                                    <button onClick={handleAddSubject} className="w-full py-4 bg-violet-600 text-white rounded-2xl font-black uppercase text-xs tracking-widest shadow-xl mt-4 active:scale-95 transition-all">{isEditing ? 'Update Subject' : 'Create Subject Folder'}</button>
                                 </div>
-                            ) : (
-                                <div className="space-y-4">
-                                    <div className="space-y-1">
-                                        <label className="text-[9px] font-black uppercase text-slate-400 ml-1">Content Type</label>
-                                        <select className="w-full bg-slate-50 dark:bg-white/5 border border-slate-100 dark:border-white/10 rounded-xl px-4 py-3 text-xs font-bold" value={addType} onChange={e => {
-                                            const t = e.target.value as 'subfolder' | 'pdf' | 'image' | 'video';
-                                            setAddType(t);
-                                            if (t !== 'subfolder') setMaterialForm({ ...materialForm, type: t as MaterialType });
-                                        }}>
-                                            <option value="subfolder">Subfolder</option>
-                                            <option value="pdf">PDF Document</option>
-                                            <option value="image">Image File</option>
-                                            <option value="video">YouTube Video</option>
-                                        </select>
-                                    </div>
+                                <button onClick={handleAddSubject} className="w-full py-4 bg-violet-600 text-white rounded-2xl font-black uppercase text-xs tracking-widest shadow-xl active:scale-95 transition-all">{isEditing ? 'Update Subject' : 'Create Subject Folder'}</button>
+                            </>
+            ) : (
+            <div className="space-y-4">
+                <div className="space-y-1">
+                    <label className="text-[9px] font-black uppercase text-slate-400 ml-1">Content Type</label>
+                    <select className="w-full bg-slate-50 dark:bg-white/5 border border-slate-100 dark:border-white/10 rounded-xl px-4 py-3 text-xs font-bold" value={addType} onChange={e => {
+                        const t = e.target.value as 'subfolder' | 'pdf' | 'image' | 'video';
+                        setAddType(t);
+                        if (t !== 'subfolder') setMaterialForm({ ...materialForm, type: t as MaterialType });
+                    }}>
+                        <option value="subfolder">Subfolder</option>
+                        <option value="pdf">PDF Document</option>
+                        <option value="image">Image File</option>
+                        <option value="video">YouTube Video</option>
+                    </select>
+                </div>
 
-                                    {addType === 'subfolder' ? (
-                                        <>
-                                            <div className="space-y-1">
-                                                <label className="text-[9px] font-black uppercase text-slate-400 ml-1">Folder Name</label>
-                                                <input type="text" className="w-full bg-slate-50 dark:bg-white/5 border border-slate-100 dark:border-white/10 rounded-xl px-4 py-3 text-xs font-bold" value={folderForm.name} onChange={e => setFolderForm({ name: e.target.value })} placeholder="e.g. Notes, Videos, Practice" />
-                                            </div>
-                                            <button onClick={handleAddFolder} className="w-full py-4 bg-violet-600 text-white rounded-2xl font-black uppercase text-xs tracking-widest shadow-xl">{isEditing ? 'Update Folder' : 'Create Subfolder'}</button>
-                                        </>
-                                    ) : (
-                                        <>
-                                            <div className="space-y-1">
-                                                <label className="text-[9px] font-black uppercase text-slate-400 ml-1">Title</label>
-                                                <input type="text" className="w-full bg-slate-50 dark:bg-white/5 border border-slate-100 dark:border-white/10 rounded-xl px-4 py-3 text-xs font-bold" value={materialForm.title} onChange={e => setMaterialForm({ ...materialForm, title: e.target.value })} placeholder="e.g. Chapter 1 Summary" />
-                                            </div>
-                                            <div className="space-y-1">
-                                                <label className="text-[9px] font-black uppercase text-slate-400 ml-1">{addType === 'video' ? 'YouTube URL' : 'File Direct URL'}</label>
-                                                <input type="text" className="w-full bg-slate-50 dark:bg-white/5 border border-slate-100 dark:border-white/10 rounded-xl px-4 py-3 text-xs font-bold" value={materialForm.url} onChange={e => setMaterialForm({ ...materialForm, url: e.target.value })} placeholder="https://..." />
-                                            </div>
-                                            <button onClick={handleAddMaterial} className="w-full py-4 bg-violet-600 text-white rounded-2xl font-black uppercase text-xs tracking-widest shadow-xl">{isEditing ? 'Save Changes' : 'Publish Content'}</button>
-                                        </>
-                                    )}
-                                </div>
+                {addType === 'subfolder' ? (
+                    <>
+                        <div className="space-y-1">
+                            <label className="text-[9px] font-black uppercase text-slate-400 ml-1">Folder Name</label>
+                            <input type="text" className="w-full bg-slate-50 dark:bg-white/5 border border-slate-100 dark:border-white/10 rounded-xl px-4 py-3 text-xs font-bold" value={folderForm.name} onChange={e => setFolderForm({ name: e.target.value })} placeholder="e.g. Notes, Videos, Practice" />
+                        </div>
+                        <button onClick={handleAddFolder} className="w-full py-4 bg-violet-600 text-white rounded-2xl font-black uppercase text-xs tracking-widest shadow-xl">{isEditing ? 'Update Folder' : 'Create Subfolder'}</button>
+                    </>
+                ) : (
+                    <>
+                        <div className="space-y-1">
+                            <label className="text-[9px] font-black uppercase text-slate-400 ml-1">Title</label>
+                            <input type="text" className="w-full bg-slate-50 dark:bg-white/5 border border-slate-100 dark:border-white/10 rounded-xl px-4 py-3 text-xs font-bold" value={materialForm.title} onChange={e => setMaterialForm({ ...materialForm, title: e.target.value })} placeholder="e.g. Chapter 1 Summary" />
+                        </div>
+                        <div className="space-y-1">
+                            <label className="text-[9px] font-black uppercase text-slate-400 ml-1">{addType === 'video' ? 'YouTube URL' : 'File Direct URL'}</label>
+                            <input type="text" className="w-full bg-slate-50 dark:bg-white/5 border border-slate-100 dark:border-white/10 rounded-xl px-4 py-3 text-xs font-bold" value={materialForm.url} onChange={e => setMaterialForm({ ...materialForm, url: e.target.value })} placeholder="https://..." />
+                        </div>
+                        <button onClick={handleAddMaterial} className="w-full py-4 bg-violet-600 text-white rounded-2xl font-black uppercase text-xs tracking-widest shadow-xl">{isEditing ? 'Save Changes' : 'Publish Content'}</button>
+                    </>
+                )}
+            </div>
                             )}
 
-                            <button onClick={() => { setIsAdding(false); setIsEditing(false); setEditingId(null); setMaterialForm({ type: 'pdf', title: '', url: '' }); }} className="w-full text-[10px] font-black text-slate-400 uppercase tracking-widest hover:text-red-400 transition-colors">Dismiss</button>
-                        </motion.div>
-                    </div>
+            <button onClick={() => { setIsAdding(false); setIsEditing(false); setEditingId(null); setMaterialForm({ type: 'pdf', title: '', url: '' }); }} className="w-full text-[10px] font-black text-slate-400 uppercase tracking-widest hover:text-red-400 transition-colors">Dismiss</button>
+        </motion.div>
+                    </div >
                 )}
-            </AnimatePresence>
+            </AnimatePresence >
 
-            {/* Content List */}
-            <div className="bg-slate-900/[0.02] dark:bg-white/[0.02] border border-slate-900/[0.06] dark:border-white/[0.06] rounded-3xl overflow-hidden min-h-[400px]">
-                {loading ? (
-                    <div className="p-12 flex flex-col items-center gap-4">
+    {/* Content List */ }
+    < div className = "bg-slate-900/[0.02] dark:bg-white/[0.02] border border-slate-900/[0.06] dark:border-white/[0.06] rounded-3xl overflow-hidden min-h-[400px]" >
+    {
+        loading?(
+                    <div className = "p-12 flex flex-col items-center gap-4" >
                         <RefreshCw className="animate-spin text-violet-500" />
                         <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Refreshing Data Store...</p>
                     </div>
                 ) : (
-                    <div className="divide-y divide-slate-900/[0.04] dark:divide-white/[0.04]">
-                        {view === 'subjects' ? (
-                            subjects.length === 0 ? (
-                                <div className="py-20 text-center text-slate-400 text-xs font-bold">No subjects added. Start with "New Subject".</div>
-                            ) : subjects.map(s => (
-                                <div key={s.id} onClick={() => drillDownSubject(s)} className="p-6 flex items-center justify-between hover:bg-slate-900/[0.03] dark:hover:bg-white/[0.03] transition-all cursor-pointer group">
-                                    <div className="flex items-center gap-5">
-                                        <div className="w-12 h-12 bg-white/5 dark:bg-white/5 border border-white/10 rounded-2xl flex items-center justify-center p-2 group-hover:scale-110 transition-transform overflow-hidden shadow-sm">
-                                            <img src={s.icon_url || '/assets/subjects/relativity.png'} className="w-full h-full object-contain filter drop-shadow-sm" onError={(e) => (e.currentTarget.src = 'https://cdn-icons-png.flaticon.com/512/3426/3426653.png')} />
-                                        </div>
-                                        <div>
-                                            <h4 className="text-sm font-black text-slate-900 dark:text-white uppercase tracking-tight">{s.name}</h4>
-                                            <div className="flex items-center gap-3 mt-1">
-                                                <span className="text-[8px] font-black bg-slate-900/10 dark:bg-white/10 text-slate-500 px-2 py-0.5 rounded uppercase">{s.code}</span>
-                                                <span className={`text-[8px] font-black px-2 py-0.5 rounded uppercase ${s.category === 'Core' ? 'bg-amber-500/10 text-amber-500' : 'bg-green-500/10 text-green-500'}`}>{s.category}</span>
-                                                <div className="flex flex-wrap gap-1">
-                                                    {s.target_classes?.map(c => <span key={c} className="text-[7px] font-black border border-slate-500/20 text-slate-500 dark:text-slate-400 px-1.5 py-0.5 rounded uppercase">{c}</span>)}
-                                                    {s.target_streams?.map(st => <span key={st} className="text-[7px] font-black border border-cyan-500/20 text-cyan-500 px-1.5 py-0.5 rounded uppercase">{st}</span>)}
-                                                    {s.target_exams?.map(ex => <span key={ex} className="text-[7px] font-black border border-emerald-500/20 text-emerald-500 px-1.5 py-0.5 rounded uppercase">{ex}</span>)}
-                                                </div>
-                                            </div>
-                                        </div>
-                                    </div>
-                                    <div className="flex items-center gap-2">
-                                        <div className="flex flex-col gap-1 mr-2">
-                                            <button onClick={(e) => { e.stopPropagation(); handleReorder('subject', 'up', s); }} className="p-1 text-slate-300 hover:text-violet-500 transition-colors"><ChevronUp size={12} /></button>
-                                            <button onClick={(e) => { e.stopPropagation(); handleReorder('subject', 'down', s); }} className="p-1 text-slate-300 hover:text-violet-500 transition-colors"><ChevronDown size={12} /></button>
-                                        </div>
-                                        <button onClick={(e) => { e.stopPropagation(); startEditSubject(s); }} className="p-2 text-slate-300 hover:text-violet-500 transition-colors opacity-0 group-hover:opacity-100"><Pencil size={16} /></button>
-                                        <button onClick={(e) => { e.stopPropagation(); deleteSubject(s.id).then(loadSubjects); }} className="p-2 text-slate-300 hover:text-red-400 transition-colors opacity-0 group-hover:opacity-100"><Trash2 size={16} /></button>
-                                    </div>
+    <div className="divide-y divide-slate-900/[0.04] dark:divide-white/[0.04]">
+        {view === 'subjects' ? (
+            subjects.length === 0 ? (
+                <div className="py-20 text-center text-slate-400 text-xs font-bold">No subjects added. Start with "New Subject".</div>
+            ) : subjects.map(s => (
+                <div key={s.id} onClick={() => drillDownSubject(s)} className="p-6 flex items-center justify-between hover:bg-slate-900/[0.03] dark:hover:bg-white/[0.03] transition-all cursor-pointer group">
+                    <div className="flex items-center gap-5">
+                        <div className="w-12 h-12 bg-white/5 dark:bg-white/5 border border-white/10 rounded-2xl flex items-center justify-center p-2 group-hover:scale-110 transition-transform overflow-hidden shadow-sm">
+                            <img src={s.icon_url || '/assets/subjects/relativity.png'} className="w-full h-full object-contain filter drop-shadow-sm" onError={(e) => (e.currentTarget.src = 'https://cdn-icons-png.flaticon.com/512/3426/3426653.png')} />
+                        </div>
+                        <div>
+                            <h4 className="text-sm font-black text-slate-900 dark:text-white uppercase tracking-tight">{s.name}</h4>
+                            <div className="flex items-center gap-3 mt-1">
+                                <span className="text-[8px] font-black bg-slate-900/10 dark:bg-white/10 text-slate-500 px-2 py-0.5 rounded uppercase">{s.code}</span>
+                                <span className={`text-[8px] font-black px-2 py-0.5 rounded uppercase ${s.category === 'Core' ? 'bg-amber-500/10 text-amber-500' : 'bg-green-500/10 text-green-500'}`}>{s.category}</span>
+                                <div className="flex flex-wrap gap-1">
+                                    {s.target_classes?.map(c => <span key={c} className="text-[7px] font-black border border-slate-500/20 text-slate-500 dark:text-slate-400 px-1.5 py-0.5 rounded uppercase">{c}</span>)}
+                                    {s.target_streams?.map(st => <span key={st} className="text-[7px] font-black border border-cyan-500/20 text-cyan-500 px-1.5 py-0.5 rounded uppercase">{st}</span>)}
+                                    {s.target_exams?.map(ex => <span key={ex} className="text-[7px] font-black border border-emerald-500/20 text-emerald-500 px-1.5 py-0.5 rounded uppercase">{ex}</span>)}
                                 </div>
-                            ))
-                        ) : (
-                            <>
-                                {/* Folders */}
-                                {folders.map(f => (
-                                    <div key={f.id} onClick={() => { setPath([...path, f]); loadFolderContent(currentSubject!.id, f.id); }} className="p-6 flex items-center justify-between hover:bg-slate-900/[0.03] dark:hover:bg-white/[0.03] transition-all cursor-pointer group">
-                                        <div className="flex items-center gap-5">
-                                            <div className="w-10 h-10 bg-slate-400/10 border border-slate-400/20 rounded-xl flex items-center justify-center text-lg">📁</div>
-                                            <h4 className="text-sm font-black text-slate-900 dark:text-white uppercase tracking-tight">{f.name}</h4>
-                                        </div>
-                                        <div className="flex items-center gap-2">
-                                            <div className="flex flex-col gap-1 mr-2">
-                                                <button onClick={(e) => { e.stopPropagation(); handleReorder('folder', 'up', f); }} className="p-1 text-slate-300 hover:text-violet-500 transition-colors"><ChevronUp size={12} /></button>
-                                                <button onClick={(e) => { e.stopPropagation(); handleReorder('folder', 'down', f); }} className="p-1 text-slate-300 hover:text-violet-500 transition-colors"><ChevronDown size={12} /></button>
-                                            </div>
-                                            <button onClick={(e) => { e.stopPropagation(); startEditFolder(f); }} className="p-2 text-slate-300 hover:text-violet-500 transition-colors opacity-0 group-hover:opacity-100"><Pencil size={16} /></button>
-                                            <button onClick={(e) => { e.stopPropagation(); deleteFolder(f.id).then(() => loadFolderContent(currentSubject!.id, path[path.length - 1]?.id || null)); }} className="p-2 text-slate-300 hover:text-red-400 transition-colors opacity-0 group-hover:opacity-100"><Trash2 size={16} /></button>
-                                        </div>
-                                    </div>
-                                ))}
-                                {/* Materials */}
-                                {materials.map(m => (
-                                    <div key={m.id} className="p-6 flex items-center justify-between hover:bg-slate-900/[0.03] dark:hover:bg-white/[0.03] transition-all group">
-                                        <div className="flex items-center gap-5">
-                                            <div className="w-10 h-10 bg-cyan-500/10 border border-cyan-500/20 rounded-xl flex items-center justify-center text-lg">
-                                                {m.type === 'pdf' ? '📄' : m.type === 'image' ? '🖼️' : '📺'}
-                                            </div>
-                                            <div>
-                                                <h4 className="text-sm font-black text-slate-900 dark:text-white uppercase tracking-tight">{m.title}</h4>
-                                                <p className="text-[8px] font-black text-slate-400 uppercase mt-0.5">{m.type} Material</p>
-                                            </div>
-                                        </div>
-                                        <div className="flex items-center gap-2">
-                                            <div className="flex flex-col gap-1 mr-2">
-                                                <button onClick={() => handleReorder('material', 'up', m)} className="p-1 text-slate-300 hover:text-violet-500 transition-colors"><ChevronUp size={12} /></button>
-                                                <button onClick={() => handleReorder('material', 'down', m)} className="p-1 text-slate-300 hover:text-violet-500 transition-colors"><ChevronDown size={12} /></button>
-                                            </div>
-                                            <a href={m.url} target="_blank" rel="noreferrer" className="p-2 text-slate-300 hover:text-violet-500 transition-colors"><Eye size={16} /></a>
-                                            {m.type === 'pdf' && (
-                                                <button
-                                                    onClick={() => handleDownload(m.url, m.title)}
-                                                    className={`p-2 transition-colors ${downloading === m.url ? 'text-violet-500 animate-bounce' : 'text-slate-300 hover:text-cyan-500'}`}
-                                                >
-                                                    <Download size={16} />
-                                                </button>
-                                            )}
-                                            <button onClick={() => startEditMaterial(m)} className="p-2 text-slate-300 hover:text-violet-500 transition-colors"><Pencil size={16} /></button>
-                                            <button onClick={() => deleteMaterial(m.id).then(() => loadFolderContent(currentSubject!.id, path[path.length - 1]?.id || null))} className="p-2 text-slate-300 hover:text-red-400 transition-colors"><Trash2 size={16} /></button>
-                                        </div>
-                                    </div>
-                                ))}
-                                {folders.length === 0 && materials.length === 0 && (
-                                    <div className="py-20 text-center text-slate-400 text-xs font-bold">This node is empty.</div>
-                                )}
-                            </>
-                        )}
+                            </div>
+                        </div>
                     </div>
+                    <div className="flex items-center gap-2">
+                        <div className="flex flex-col gap-1 mr-2">
+                            <button onClick={(e) => { e.stopPropagation(); handleReorder('subject', 'up', s); }} className="p-1 text-slate-300 hover:text-violet-500 transition-colors"><ChevronUp size={12} /></button>
+                            <button onClick={(e) => { e.stopPropagation(); handleReorder('subject', 'down', s); }} className="p-1 text-slate-300 hover:text-violet-500 transition-colors"><ChevronDown size={12} /></button>
+                        </div>
+                        <button onClick={(e) => { e.stopPropagation(); startEditSubject(s); }} className="p-2 text-slate-300 hover:text-violet-500 transition-colors opacity-0 group-hover:opacity-100"><Pencil size={16} /></button>
+                        <button onClick={(e) => { e.stopPropagation(); deleteSubject(s.id).then(loadSubjects); }} className="p-2 text-slate-300 hover:text-red-400 transition-colors opacity-0 group-hover:opacity-100"><Trash2 size={16} /></button>
+                    </div>
+                </div>
+            ))
+        ) : (
+            <>
+                {/* Folders */}
+                {folders.map(f => (
+                    <div key={f.id} onClick={() => { setPath([...path, f]); loadFolderContent(currentSubject!.id, f.id); }} className="p-6 flex items-center justify-between hover:bg-slate-900/[0.03] dark:hover:bg-white/[0.03] transition-all cursor-pointer group">
+                        <div className="flex items-center gap-5">
+                            <div className="w-10 h-10 bg-slate-400/10 border border-slate-400/20 rounded-xl flex items-center justify-center text-lg">📁</div>
+                            <h4 className="text-sm font-black text-slate-900 dark:text-white uppercase tracking-tight">{f.name}</h4>
+                        </div>
+                        <div className="flex items-center gap-2">
+                            <div className="flex flex-col gap-1 mr-2">
+                                <button onClick={(e) => { e.stopPropagation(); handleReorder('folder', 'up', f); }} className="p-1 text-slate-300 hover:text-violet-500 transition-colors"><ChevronUp size={12} /></button>
+                                <button onClick={(e) => { e.stopPropagation(); handleReorder('folder', 'down', f); }} className="p-1 text-slate-300 hover:text-violet-500 transition-colors"><ChevronDown size={12} /></button>
+                            </div>
+                            <button onClick={(e) => { e.stopPropagation(); startEditFolder(f); }} className="p-2 text-slate-300 hover:text-violet-500 transition-colors opacity-0 group-hover:opacity-100"><Pencil size={16} /></button>
+                            <button onClick={(e) => { e.stopPropagation(); deleteFolder(f.id).then(() => loadFolderContent(currentSubject!.id, path[path.length - 1]?.id || null)); }} className="p-2 text-slate-300 hover:text-red-400 transition-colors opacity-0 group-hover:opacity-100"><Trash2 size={16} /></button>
+                        </div>
+                    </div>
+                ))}
+                {/* Materials */}
+                {materials.map(m => (
+                    <div key={m.id} className="p-6 flex items-center justify-between hover:bg-slate-900/[0.03] dark:hover:bg-white/[0.03] transition-all group">
+                        <div className="flex items-center gap-5">
+                            <div className="w-10 h-10 bg-cyan-500/10 border border-cyan-500/20 rounded-xl flex items-center justify-center text-lg">
+                                {m.type === 'pdf' ? '📄' : m.type === 'image' ? '🖼️' : '📺'}
+                            </div>
+                            <div>
+                                <h4 className="text-sm font-black text-slate-900 dark:text-white uppercase tracking-tight">{m.title}</h4>
+                                <p className="text-[8px] font-black text-slate-400 uppercase mt-0.5">{m.type} Material</p>
+                            </div>
+                        </div>
+                        <div className="flex items-center gap-2">
+                            <div className="flex flex-col gap-1 mr-2">
+                                <button onClick={() => handleReorder('material', 'up', m)} className="p-1 text-slate-300 hover:text-violet-500 transition-colors"><ChevronUp size={12} /></button>
+                                <button onClick={() => handleReorder('material', 'down', m)} className="p-1 text-slate-300 hover:text-violet-500 transition-colors"><ChevronDown size={12} /></button>
+                            </div>
+                            <a href={m.url} target="_blank" rel="noreferrer" className="p-2 text-slate-300 hover:text-violet-500 transition-colors"><Eye size={16} /></a>
+                            {m.type === 'pdf' && (
+                                <button
+                                    onClick={() => handleDownload(m.url, m.title)}
+                                    className={`p-2 transition-colors ${downloading === m.url ? 'text-violet-500 animate-bounce' : 'text-slate-300 hover:text-cyan-500'}`}
+                                >
+                                    <Download size={16} />
+                                </button>
+                            )}
+                            <button onClick={() => startEditMaterial(m)} className="p-2 text-slate-300 hover:text-violet-500 transition-colors"><Pencil size={16} /></button>
+                            <button onClick={() => deleteMaterial(m.id).then(() => loadFolderContent(currentSubject!.id, path[path.length - 1]?.id || null))} className="p-2 text-slate-300 hover:text-red-400 transition-colors"><Trash2 size={16} /></button>
+                        </div>
+                    </div>
+                ))}
+                {folders.length === 0 && materials.length === 0 && (
+                    <div className="py-20 text-center text-slate-400 text-xs font-bold">This node is empty.</div>
                 )}
-            </div>
-        </div>
+            </>
+        )}
+    </div>
+)}
+            </div >
+        </div >
     );
 };
 
