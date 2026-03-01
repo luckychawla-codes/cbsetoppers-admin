@@ -716,9 +716,24 @@ const ContentView: React.FC = () => {
     const handleAddMaterial = async () => {
         const parentFolder = path[path.length - 1];
         if (!currentSubject || !materialForm.title || !materialForm.url) return alert('Fill all fields');
+
+        // Auto-fix Google Drive Links for App Compatibility
+        let finalUrl = materialForm.url;
+        if (finalUrl.includes('drive.google.com')) {
+            finalUrl = finalUrl.replace(/\/view(\?.*)?$/, '/preview');
+            if (finalUrl.includes('/d/')) {
+                const parts = finalUrl.split('/d/');
+                if (parts[1] && !parts[1].includes('/preview')) {
+                    const fileId = parts[1].split('/')[0];
+                    finalUrl = `https://drive.google.com/file/d/${fileId}/preview`;
+                }
+            }
+        }
+
         try {
             await createMaterial({
                 ...materialForm,
+                url: finalUrl,
                 subject_id: currentSubject.id,
                 folder_id: parentFolder?.id || null,
                 order_index: materials.length
