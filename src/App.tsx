@@ -882,9 +882,9 @@ const ContentView: React.FC = () => {
                                                         onClick={() => {
                                                             const current = subForm.target_classes || [];
                                                             const next = isSelected ? current.filter(x => x !== c) : [...current, c];
-                                                            // Logic: if class X selected, Science stream is implied
+                                                            // Logic: if class IX or X selected, Science stream is implied
                                                             let nextStreams = subForm.target_streams || [];
-                                                            if (!isSelected && c === 'X' && !nextStreams.includes('Science')) {
+                                                            if (!isSelected && (c === 'IX' || c === 'X') && !nextStreams.includes('Science')) {
                                                                 nextStreams = [...nextStreams, 'Science'];
                                                             }
                                                             setSubForm({ ...subForm, target_classes: next, target_streams: nextStreams });
@@ -899,13 +899,15 @@ const ContentView: React.FC = () => {
                                     </div>
 
                                     {/* Target Streams - Multi Select (if Class XI or XII selected) */}
-                                    {(subForm.target_classes?.some(c => ['X', 'XI', 'XII', 'XII+'].includes(c))) && (
+                                    {(subForm.target_classes?.some(c => ['IX', 'X', 'XI', 'XII', 'XII+'].includes(c))) && (
                                         <div className="space-y-2 animate-in fade-in slide-in-from-top-2 duration-300">
                                             <label className="text-[9px] font-black uppercase text-slate-400 ml-1">Linked Streams</label>
                                             <div className="flex flex-wrap gap-2">
                                                 {streams.map(s => {
                                                     const isSelected = subForm.target_streams?.includes(s);
-                                                    const isLockedScience = s === 'Science' && subForm.target_classes?.includes('X') && !subForm.target_classes?.some(c => ['XI', 'XII', 'XII+'].includes(c));
+                                                    const isLockedScience = s === 'Science' &&
+                                                        (subForm.target_classes?.includes('X') || subForm.target_classes?.includes('IX')) &&
+                                                        !subForm.target_classes?.some(c => ['XI', 'XII', 'XII+'].includes(c));
 
                                                     return (
                                                         <button
@@ -919,7 +921,7 @@ const ContentView: React.FC = () => {
                                                             className={`px-3 py-1.5 rounded-lg text-[10px] font-black uppercase transition-all border ${isSelected ? 'bg-cyan-600 border-cyan-500 text-white shadow-lg' : 'bg-slate-50 dark:bg-white/5 border-slate-100 dark:border-white/10 text-slate-400 opacity-60'} ${isLockedScience ? 'cursor-not-allowed opacity-100 bg-cyan-600/30 border-cyan-500/30' : ''}`}
                                                         >
                                                             {s}
-                                                            {isLockedScience && <span className="ml-1 text-[8px] opacity-50">(Locked for X)</span>}
+                                                            {isLockedScience && <span className="ml-1 text-[8px] opacity-50">(Locked for IX/X)</span>}
                                                         </button>
                                                     );
                                                 })}
