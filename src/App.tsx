@@ -650,6 +650,7 @@ const ContentView: React.FC = () => {
     const [subForm, setSubForm] = useState<Partial<Subject>>({ category: 'Core', target_class: 'XII', target_stream: 'PCM' });
     const [folderForm, setFolderForm] = useState({ name: '' });
     const [materialForm, setMaterialForm] = useState<Partial<Material>>({ type: 'pdf', title: '', url: '' });
+    const [addType, setAddType] = useState<'subfolder' | 'pdf' | 'image' | 'video'>('subfolder');
 
     const classes = ['IX', 'X', 'XI', 'XII', 'XII+'];
     const streams = ['PCB', 'PCM', 'PCBM'];
@@ -776,16 +777,9 @@ const ContentView: React.FC = () => {
                         <Plus size={14} /> New Subject
                     </button>
                 ) : (
-                    <div className="flex gap-2">
-                        {path.length > 0 && (
-                            <button onClick={() => { setMaterialForm({ ...materialForm, type: 'pdf' }); setIsAdding(true); }} className="px-4 py-2 bg-slate-900/5 dark:bg-white/5 text-[10px] font-black uppercase rounded-lg border border-slate-900/10 dark:border-white/10 hover:bg-violet-500/10 hover:text-violet-500 transition-all">
-                                Add Content
-                            </button>
-                        )}
-                        <button onClick={() => { setFolderForm({ name: '' }); setIsAdding(true); }} className="px-4 py-2 bg-violet-600 text-white text-[10px] font-black uppercase rounded-lg shadow-md active:scale-95 transition-all">
-                            Create Folder
-                        </button>
-                    </div>
+                    <button onClick={() => { setAddType('subfolder'); setFolderForm({ name: '' }); setMaterialForm({ type: 'pdf', title: '', url: '' }); setIsAdding(true); }} className="flex items-center gap-2 px-6 py-3 bg-violet-600 text-white rounded-xl text-[10px] font-black uppercase tracking-widest shadow-lg active:scale-95 transition-all">
+                        <Plus size={14} /> Add Content
+                    </button>
                 )}
             </div>
 
@@ -848,33 +842,43 @@ const ContentView: React.FC = () => {
                                     </div>
                                     <button onClick={handleAddSubject} className="w-full py-4 bg-violet-600 text-white rounded-2xl font-black uppercase text-xs tracking-widest shadow-xl">Create Subject Folder</button>
                                 </div>
-                            ) : materialForm.title !== undefined ? (
-                                <div className="space-y-4">
-                                    <div className="space-y-1">
-                                        <label className="text-[9px] font-black uppercase text-slate-400 ml-1">Media Type</label>
-                                        <select className="w-full bg-slate-50 dark:bg-white/5 border border-slate-100 dark:border-white/10 rounded-xl px-4 py-3 text-xs font-bold" value={materialForm.type} onChange={e => setMaterialForm({ ...materialForm, type: e.target.value as MaterialType })}>
-                                            <option value="pdf">PDF Document</option>
-                                            <option value="image">Image File</option>
-                                            <option value="video">YouTube Video Link</option>
-                                        </select>
-                                    </div>
-                                    <div className="space-y-1">
-                                        <label className="text-[9px] font-black uppercase text-slate-400 ml-1">Title</label>
-                                        <input type="text" className="w-full bg-slate-50 dark:bg-white/5 border border-slate-100 dark:border-white/10 rounded-xl px-4 py-3 text-xs font-bold" value={materialForm.title} onChange={e => setMaterialForm({ ...materialForm, title: e.target.value })} placeholder="e.g. Chapter 1 Summary" />
-                                    </div>
-                                    <div className="space-y-1">
-                                        <label className="text-[9px] font-black uppercase text-slate-400 ml-1">{materialForm.type === 'video' ? 'YouTube URL' : 'File Direct URL'}</label>
-                                        <input type="text" className="w-full bg-slate-50 dark:bg-white/5 border border-slate-100 dark:border-white/10 rounded-xl px-4 py-3 text-xs font-bold" value={materialForm.url} onChange={e => setMaterialForm({ ...materialForm, url: e.target.value })} placeholder="https://..." />
-                                    </div>
-                                    <button onClick={handleAddMaterial} className="w-full py-4 bg-violet-600 text-white rounded-2xl font-black uppercase text-xs tracking-widest shadow-xl">Publish Content</button>
-                                </div>
                             ) : (
                                 <div className="space-y-4">
                                     <div className="space-y-1">
-                                        <label className="text-[9px] font-black uppercase text-slate-400 ml-1">Folder Name</label>
-                                        <input type="text" className="w-full bg-slate-50 dark:bg-white/5 border border-slate-100 dark:border-white/10 rounded-xl px-4 py-3 text-xs font-bold" value={folderForm.name} onChange={e => setFolderForm({ name: e.target.value })} placeholder="e.g. Notes, Videos, Practice" />
+                                        <label className="text-[9px] font-black uppercase text-slate-400 ml-1">Content Type</label>
+                                        <select className="w-full bg-slate-50 dark:bg-white/5 border border-slate-100 dark:border-white/10 rounded-xl px-4 py-3 text-xs font-bold" value={addType} onChange={e => {
+                                            const t = e.target.value as 'subfolder' | 'pdf' | 'image' | 'video';
+                                            setAddType(t);
+                                            if (t !== 'subfolder') setMaterialForm({ ...materialForm, type: t as MaterialType });
+                                        }}>
+                                            <option value="subfolder">Subfolder</option>
+                                            <option value="pdf">PDF Document</option>
+                                            <option value="image">Image File</option>
+                                            <option value="video">YouTube Video</option>
+                                        </select>
                                     </div>
-                                    <button onClick={handleAddFolder} className="w-full py-4 bg-violet-600 text-white rounded-2xl font-black uppercase text-xs tracking-widest shadow-xl">Create Subfolder</button>
+
+                                    {addType === 'subfolder' ? (
+                                        <>
+                                            <div className="space-y-1">
+                                                <label className="text-[9px] font-black uppercase text-slate-400 ml-1">Folder Name</label>
+                                                <input type="text" className="w-full bg-slate-50 dark:bg-white/5 border border-slate-100 dark:border-white/10 rounded-xl px-4 py-3 text-xs font-bold" value={folderForm.name} onChange={e => setFolderForm({ name: e.target.value })} placeholder="e.g. Notes, Videos, Practice" />
+                                            </div>
+                                            <button onClick={handleAddFolder} className="w-full py-4 bg-violet-600 text-white rounded-2xl font-black uppercase text-xs tracking-widest shadow-xl">Create Subfolder</button>
+                                        </>
+                                    ) : (
+                                        <>
+                                            <div className="space-y-1">
+                                                <label className="text-[9px] font-black uppercase text-slate-400 ml-1">Title</label>
+                                                <input type="text" className="w-full bg-slate-50 dark:bg-white/5 border border-slate-100 dark:border-white/10 rounded-xl px-4 py-3 text-xs font-bold" value={materialForm.title} onChange={e => setMaterialForm({ ...materialForm, title: e.target.value })} placeholder="e.g. Chapter 1 Summary" />
+                                            </div>
+                                            <div className="space-y-1">
+                                                <label className="text-[9px] font-black uppercase text-slate-400 ml-1">{addType === 'video' ? 'YouTube URL' : 'File Direct URL'}</label>
+                                                <input type="text" className="w-full bg-slate-50 dark:bg-white/5 border border-slate-100 dark:border-white/10 rounded-xl px-4 py-3 text-xs font-bold" value={materialForm.url} onChange={e => setMaterialForm({ ...materialForm, url: e.target.value })} placeholder="https://..." />
+                                            </div>
+                                            <button onClick={handleAddMaterial} className="w-full py-4 bg-violet-600 text-white rounded-2xl font-black uppercase text-xs tracking-widest shadow-xl">Publish Content</button>
+                                        </>
+                                    )}
                                 </div>
                             )}
 
