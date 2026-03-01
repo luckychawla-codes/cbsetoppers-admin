@@ -726,11 +726,17 @@ const ContentView: React.FC = () => {
             }
         }
 
+        const finalData = { ...subForm };
+        if (subForm.category === 'Additional') {
+            finalData.target_stream = undefined;
+            finalData.target_streams = [];
+        }
+
         try {
             if (isEditing && editingId) {
-                await updateSubject(editingId, subForm);
+                await updateSubject(editingId, finalData);
             } else {
-                await createSubject({ ...subForm, order_index: subjects.length });
+                await createSubject({ ...finalData, order_index: subjects.length });
             }
             setIsAdding(false);
             setIsEditing(false);
@@ -970,8 +976,8 @@ const ContentView: React.FC = () => {
                                         </div>
                                     </div>
 
-                                    {/* Target Streams - Multi Select (if Class XI or XII selected) */}
-                                    {(subForm.target_classes?.some(c => ['IX', 'X', 'XI', 'XII', 'XII+'].includes(c))) && (
+                                    {/* Target Streams - Multi Select (if Core & Class XI or XII selected) */}
+                                    {(subForm.category === 'Core' && subForm.target_classes?.some(c => ['IX', 'X', 'XI', 'XII', 'XII+'].includes(c))) && (
                                         <div className="space-y-2 animate-in fade-in slide-in-from-top-2 duration-300">
                                             <label className="text-[9px] font-black uppercase text-slate-400 ml-1">Linked Streams</label>
                                             <div className="flex flex-wrap gap-2">
