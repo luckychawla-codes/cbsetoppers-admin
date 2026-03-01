@@ -672,13 +672,21 @@ const ContentView: React.FC = () => {
     const [isAdding, setIsAdding] = useState(false);
 
     // Form states
-    const [subForm, setSubForm] = useState<Partial<Subject>>({ category: 'Core', target_class: 'XII', target_stream: 'PCM' });
+    const [subForm, setSubForm] = useState<Partial<Subject>>({
+        category: 'Core',
+        target_class: 'XII', // Keep for now
+        target_stream: 'PCM', // Keep for now
+        target_classes: ['XII'],
+        target_streams: ['PCM'],
+        target_exams: []
+    });
     const [folderForm, setFolderForm] = useState({ name: '' });
     const [materialForm, setMaterialForm] = useState<Partial<Material>>({ type: 'pdf', title: '', url: '' });
     const [addType, setAddType] = useState<'subfolder' | 'pdf' | 'image' | 'video'>('subfolder');
 
     const classes = ['IX', 'X', 'XI', 'XII', 'XII+'];
-    const streams = ['PCB', 'PCM', 'PCBM'];
+    const streams = ['PCB', 'PCM', 'PCBM', 'Commerce', 'Humanities', 'Science'];
+    const exams = ['JEE', 'NEET', 'CUET', 'NDA', 'CLAT', 'CA Foundation'];
 
     const loadSubjects = useCallback(async () => {
         setLoading(true);
@@ -706,14 +714,17 @@ const ContentView: React.FC = () => {
 
     const handleAddSubject = async () => {
         if (!subForm.name || !subForm.code) return alert('Name and Code required');
+        if (!subForm.target_classes || subForm.target_classes.length === 0) return alert('Select at least one class');
+
+        // Logic check: if Class X is selected, ensure Science is included or handle as default
+        const hasX = subForm.target_classes.includes('X');
+        const hasHigher = subForm.target_classes.some(c => ['XI', 'XII', 'XII+'].includes(c));
 
         // Strict Validation
         if (subForm.category === 'Core') {
-            if (!['XI', 'XII'].includes(subForm.target_class!)) return alert('Core subjects only allowed for XI and XII');
-            if (!subForm.target_stream) return alert('Stream is mandatory for Core subjects');
-        } else {
-            // Additional
-            if (subForm.target_stream) return alert('Stream must NOT be selected for Additional subjects');
+            if (hasHigher && (!subForm.target_streams || subForm.target_streams.length === 0)) {
+                return alert('Stream is mandatory for Class XI/XII Core subjects');
+            }
         }
 
         try {
@@ -840,7 +851,7 @@ const ContentView: React.FC = () => {
                             </h2>
 
                             {view === 'subjects' ? (
-                                <div className="space-y-4">
+                                <div className="space-y-4 max-h-[60vh] overflow-y-auto px-1">
                                     <div className="grid grid-cols-2 gap-4">
                                         <div className="space-y-1">
                                             <label className="text-[9px] font-black uppercase text-slate-400 ml-1">Type</label>
@@ -858,23 +869,88 @@ const ContentView: React.FC = () => {
                                         <label className="text-[9px] font-black uppercase text-slate-400 ml-1">Name</label>
                                         <input type="text" className="w-full bg-slate-50 dark:bg-white/5 border border-slate-100 dark:border-white/10 rounded-xl px-4 py-3 text-xs font-bold" value={subForm.name} onChange={e => setSubForm({ ...subForm, name: e.target.value })} placeholder="e.g. Physics" />
                                     </div>
-                                    <div className="grid grid-cols-2 gap-4">
-                                        <div className="space-y-1">
-                                            <label className="text-[9px] font-black uppercase text-slate-400 ml-1">Class</label>
-                                            <select className="w-full bg-slate-50 dark:bg-white/5 border border-slate-100 dark:border-white/10 rounded-xl px-4 py-3 text-xs font-bold" value={subForm.target_class} onChange={e => setSubForm({ ...subForm, target_class: e.target.value })}>
-                                                {classes.map(c => <option key={c} value={c}>{c}</option>)}
-                                            </select>
+
+                                    {/* Target Classes - Multi Select */}
+                                    <div className="space-y-2">
+                                        <label className="text-[9px] font-black uppercase text-slate-400 ml-1">Linked Classes</label>
+                                        <div className="flex flex-wrap gap-2">
+                                            {classes.map(c => {
+                                                const isSelected = subForm.target_classes?.includes(c);
+                                                return (
+                                                    <button
+                                                        key={c}
+                                                        onClick={() => {
+                                                            const current = subForm.target_classes || [];
+                                                            const next = isSelected ? current.filter(x => x !== c) : [...current, c];
+                                                            // Logic: if class X selected, Science stream is implied
+                                                            let nextStreams = subForm.target_streams || [];
+                                                            if (!isSelected && c === 'X' && !nextStreams.includes('Science')) {
+                                                                nextStreams = [...nextStreams, 'Science'];
+                                                            }
+                                                            setSubForm({ ...subForm, target_classes: next, target_streams: nextStreams });
+                                                        }}
+                                                        className={`px-3 py-1.5 rounded-lg text-[10px] font-black uppercase transition-all border ${isSelected ? 'bg-violet-600 border-violet-500 text-white shadow-lg' : 'bg-slate-50 dark:bg-white/5 border-slate-100 dark:border-white/10 text-slate-400 opacity-60'}`}
+                                                    >
+                                                        {c}
+                                                    </button>
+                                                );
+                                            })}
                                         </div>
-                                        {subForm.category === 'Core' && (['XI', 'XII'].includes(subForm.target_class!)) && (
-                                            <div className="space-y-1">
-                                                <label className="text-[9px] font-black uppercase text-slate-400 ml-1">Stream</label>
-                                                <select className="w-full bg-slate-50 dark:bg-white/5 border border-slate-100 dark:border-white/10 rounded-xl px-4 py-3 text-xs font-bold" value={subForm.target_stream} onChange={e => setSubForm({ ...subForm, target_stream: e.target.value })}>
-                                                    {streams.map(s => <option key={s} value={s}>{s}</option>)}
-                                                </select>
-                                            </div>
-                                        )}
                                     </div>
-                                    <button onClick={handleAddSubject} className="w-full py-4 bg-violet-600 text-white rounded-2xl font-black uppercase text-xs tracking-widest shadow-xl">Create Subject Folder</button>
+
+                                    {/* Target Streams - Multi Select (if Class XI or XII selected) */}
+                                    {(subForm.target_classes?.some(c => ['X', 'XI', 'XII', 'XII+'].includes(c))) && (
+                                        <div className="space-y-2 animate-in fade-in slide-in-from-top-2 duration-300">
+                                            <label className="text-[9px] font-black uppercase text-slate-400 ml-1">Linked Streams</label>
+                                            <div className="flex flex-wrap gap-2">
+                                                {streams.map(s => {
+                                                    const isSelected = subForm.target_streams?.includes(s);
+                                                    const isLockedScience = s === 'Science' && subForm.target_classes?.includes('X') && !subForm.target_classes?.some(c => ['XI', 'XII', 'XII+'].includes(c));
+
+                                                    return (
+                                                        <button
+                                                            key={s}
+                                                            disabled={isLockedScience}
+                                                            onClick={() => {
+                                                                const current = subForm.target_streams || [];
+                                                                const next = isSelected ? current.filter(x => x !== s) : [...current, s];
+                                                                setSubForm({ ...subForm, target_streams: next });
+                                                            }}
+                                                            className={`px-3 py-1.5 rounded-lg text-[10px] font-black uppercase transition-all border ${isSelected ? 'bg-cyan-600 border-cyan-500 text-white shadow-lg' : 'bg-slate-50 dark:bg-white/5 border-slate-100 dark:border-white/10 text-slate-400 opacity-60'} ${isLockedScience ? 'cursor-not-allowed opacity-100 bg-cyan-600/30 border-cyan-500/30' : ''}`}
+                                                        >
+                                                            {s}
+                                                            {isLockedScience && <span className="ml-1 text-[8px] opacity-50">(Locked for X)</span>}
+                                                        </button>
+                                                    );
+                                                })}
+                                            </div>
+                                        </div>
+                                    )}
+
+                                    {/* Competitive Exams - Multi Select */}
+                                    <div className="space-y-2">
+                                        <label className="text-[9px] font-black uppercase text-slate-400 ml-1">Linked Competitive Exams</label>
+                                        <div className="flex flex-wrap gap-2">
+                                            {exams.map(e => {
+                                                const isSelected = subForm.target_exams?.includes(e);
+                                                return (
+                                                    <button
+                                                        key={e}
+                                                        onClick={() => {
+                                                            const current = subForm.target_exams || [];
+                                                            const next = isSelected ? current.filter(x => x !== e) : [...current, e];
+                                                            setSubForm({ ...subForm, target_exams: next });
+                                                        }}
+                                                        className={`px-3 py-1.5 rounded-lg text-[10px] font-black uppercase transition-all border ${isSelected ? 'bg-emerald-600 border-emerald-500 text-white shadow-lg' : 'bg-slate-50 dark:bg-white/5 border-slate-100 dark:border-white/10 text-slate-400 opacity-60'}`}
+                                                    >
+                                                        {e}
+                                                    </button>
+                                                );
+                                            })}
+                                        </div>
+                                    </div>
+
+                                    <button onClick={handleAddSubject} className="w-full py-4 bg-violet-600 text-white rounded-2xl font-black uppercase text-xs tracking-widest shadow-xl mt-4 active:scale-95 transition-all">Create Subject Folder</button>
                                 </div>
                             ) : (
                                 <div className="space-y-4">
@@ -943,7 +1019,11 @@ const ContentView: React.FC = () => {
                                             <div className="flex items-center gap-3 mt-1">
                                                 <span className="text-[8px] font-black bg-slate-900/10 dark:bg-white/10 text-slate-500 px-2 py-0.5 rounded uppercase">{s.code}</span>
                                                 <span className={`text-[8px] font-black px-2 py-0.5 rounded uppercase ${s.category === 'Core' ? 'bg-amber-500/10 text-amber-500' : 'bg-green-500/10 text-green-500'}`}>{s.category}</span>
-                                                <span className="text-[8px] font-black text-slate-400 uppercase">Class {s.target_class} {s.target_stream}</span>
+                                                <div className="flex flex-wrap gap-1">
+                                                    {s.target_classes?.map(c => <span key={c} className="text-[7px] font-black border border-slate-500/20 text-slate-500 dark:text-slate-400 px-1.5 py-0.5 rounded uppercase">{c}</span>)}
+                                                    {s.target_streams?.map(st => <span key={st} className="text-[7px] font-black border border-cyan-500/20 text-cyan-500 px-1.5 py-0.5 rounded uppercase">{st}</span>)}
+                                                    {s.target_exams?.map(ex => <span key={ex} className="text-[7px] font-black border border-emerald-500/20 text-emerald-500 px-1.5 py-0.5 rounded uppercase">{ex}</span>)}
+                                                </div>
                                             </div>
                                         </div>
                                     </div>
