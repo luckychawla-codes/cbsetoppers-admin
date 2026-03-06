@@ -23,17 +23,35 @@ type View = 'dashboard' | 'students' | 'content' | 'settings' | 'operators';
 const LOGO_URL = "https://i.ibb.co/vC4MYFFk/1770137585956.png";
 
 const SUBJECT_ICONS = [
-    { id: 'biology', name: 'Biology', url: '/assets/subjects/biology.png' },
+    { id: 'basketball', name: 'Basketball/Sports', url: '/assets/subjects/basketball.png' },
+    { id: 'biology', name: 'Biology/Science', url: '/assets/subjects/biology.png' },
+    { id: 'book', name: 'General/Book', url: '/assets/subjects/book.png' },
+    { id: 'bookworm', name: 'Bookworm/Reading', url: '/assets/subjects/bookworm.png' },
     { id: 'botany', name: 'Botany/Plants', url: '/assets/subjects/botany.png' },
-    { id: 'chemistry', name: 'Chemistry', url: '/assets/subjects/chemistry.png' },
-    { id: 'eng', name: 'English', url: '/assets/subjects/eng.png' },
-    { id: 'landscape', name: 'Geography/Landscape', url: '/assets/subjects/landscape.png' },
-    { id: 'neural', name: 'Neural/AI', url: '/assets/subjects/neural.png' },
-    { id: 'psychology', name: 'Psychology', url: '/assets/subjects/psychology.png' },
-    { id: 'relativity', name: 'Relativity/Physics', url: '/assets/subjects/relativity.png' },
-    { id: 'society', name: 'Civics/Society', url: '/assets/subjects/society.png' },
-    { id: 'sports', name: 'Physical Ed/Sports', url: '/assets/subjects/sports.png' },
-    { id: 'tools', name: 'Tools/Math', url: '/assets/subjects/tools.png' }
+    { id: 'business_and_finance', name: 'Business/Finance', url: '/assets/subjects/business_and_finance.png' },
+    { id: 'calculator', name: 'Math/Calculator', url: '/assets/subjects/calculator.png' },
+    { id: 'chemistry', name: 'Chemistry/Lab', url: '/assets/subjects/chemistry.png' },
+    { id: 'coloring', name: 'Art/Coloring', url: '/assets/subjects/coloring.png' },
+    { id: 'compass', name: 'Geography/Navigation', url: '/assets/subjects/compass.png' },
+    { id: 'diet', name: 'Health/Diet', url: '/assets/subjects/diet.png' },
+    { id: 'education', name: 'Education/General', url: '/assets/subjects/education.png' },
+    { id: 'eng', name: 'English/Lang', url: '/assets/subjects/eng.png' },
+    { id: 'exercise', name: 'P.E./Exercise', url: '/assets/subjects/exercise.png' },
+    { id: 'geography', name: 'Geography/Map', url: '/assets/subjects/geography.png' },
+    { id: 'government', name: 'Civics/Govt', url: '/assets/subjects/government.png' },
+    { id: 'guitar', name: 'Music/Guitar', url: '/assets/subjects/guitar.png' },
+    { id: 'history_book', name: 'History/Book', url: '/assets/subjects/history_book.png' },
+    { id: 'landscape', name: 'Landscape/Geo', url: '/assets/subjects/landscape.png' },
+    { id: 'language', name: 'Language/World', url: '/assets/subjects/language.png' },
+    { id: 'math_book', name: 'Math/Book', url: '/assets/subjects/math_book.png' },
+    { id: 'maths', name: 'Mathematics', url: '/assets/subjects/maths.png' },
+    { id: 'neural', name: 'AI/Neural', url: '/assets/subjects/neural.png' },
+    { id: 'psychology', name: 'Psychology/Mind', url: '/assets/subjects/psychology.png' },
+    { id: 'relativity', name: 'Physics/Einstein', url: '/assets/subjects/relativity.png' },
+    { id: 'society', name: 'Society/Group', url: '/assets/subjects/society.png' },
+    { id: 'sports', name: 'Sports/Games', url: '/assets/subjects/sports.png' },
+    { id: 'tools', name: 'Tools/Engineering', url: '/assets/subjects/tools.png' },
+    { id: 'writingboard', name: 'Math/Writing', url: '/assets/subjects/writingboard.png' }
 ];
 
 const ROLE_CONFIG: Record<OperatorRole, { label: string; color: string; bg: string; icon: React.ReactNode }> = {
